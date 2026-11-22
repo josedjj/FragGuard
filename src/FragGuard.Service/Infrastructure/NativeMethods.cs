@@ -73,6 +73,102 @@ internal static class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool QueryFullProcessImageNameW(IntPtr hProcess, uint dwFlags, StringBuilder lpExeName, ref uint lpdwSize);
 
+    // ---------- Línea de comandos de otro proceso (solo lectura, Windows 8.1+) ----------
+    private const int ProcessCommandLineInformation = 60;
+
+    [DllImport("ntdll.dll")]
+    private static extern int NtQueryInformationProcess(IntPtr processHandle, int processInformationClass, IntPtr processInformation, int processInformationLength, out int returnLength);
+
+    /// <summary>
+    /// Línea de comandos de un proceso con PROCESS_QUERY_LIMITED_INFORMATION (no lee su memoria ni se
+    /// inyecta en él). Devuelve null si no se puede (proceso protegido o ya terminado).
+    /// </summary>
+    internal static string? TryGetCommandLine(uint pid)
+    {
+        IntPtr h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (h == IntPtr.Zero)
+            return null;
+        IntPtr buffer = IntPtr.Zero;
+        try
+        {
+            NtQueryInformationProcess(h, ProcessCommandLineInformation, IntPtr.Zero, 0, out int needed);
+            if (needed <= 0 || needed > 64 * 1024)
+                return null;
+            buffer = Marshal.AllocHGlobal(needed);
+            if (NtQueryInformationProcess(h, ProcessCommandLineInformation, buffer, needed, out _) != 0)
+                return null;
+            // El resultado es un UNICODE_STRING: Length (ushort), MaximumLength (ushort), [relleno], Buffer (puntero)
+            ushort length = (ushort)Marshal.ReadInt16(buffer);
+            IntPtr text = Marshal.ReadIntPtr(buffer, IntPtr.Size);
+            return length == 0 || text == IntPtr.Zero ? null : Marshal.PtrToStringUni(text, length / 2);
+        }
+        finally
+        {
+            if (buffer != IntPtr.Zero) Marshal.FreeHGlobal(buffer);
+            CloseHandle(h);
+        }
+    }
+
+    // ---------- Contadores de E/S (para identificar al proceso que cifra archivos) ----------
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct IO_COUNTERS
+    {
+        public ulong ReadOperationCount, WriteOperationCount, OtherOperationCount;
+        public ulong ReadTransferCount, WriteTransferCount, OtherTransferCount;
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetProcessIoCounters(IntPtr hProcess, out IO_COUNTERS counters);
+
+    internal static IO_COUNTERS? TryGetIoCounters(uint pid)
+    {
+        IntPtr h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (h == IntPtr.Zero)
+            return null;
+        try { return GetProcessIoCounters(h, out var c) ? c : null; }
+        finally { CloseHandle(h); }
+    }
+
+    // ---------- Privilegios del propio proceso (SeSecurityPrivilege para configurar auditoría) ----------
+    private const uint TOKEN_ADJUST_PRIVILEGES = 0x20, TOKEN_QUERY = 0x8, SE_PRIVILEGE_ENABLED = 0x2;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LUID { public uint LowPart; public int HighPart; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct TOKEN_PRIVILEGES { public uint PrivilegeCount; public LUID Luid; public uint Attributes; }
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool OpenProcessToken(IntPtr processHandle, uint desiredAccess, out IntPtr tokenHandle);
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool LookupPrivilegeValue(string? systemName, string name, out LUID luid);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool AdjustTokenPrivileges(IntPtr tokenHandle, bool disableAll, ref TOKEN_PRIVILEGES newState, uint bufferLength, IntPtr previousState, IntPtr returnLength);
+
+    /// <summary>Habilita un privilegio que el token YA posee (p. ej. SeSecurityPrivilege en SYSTEM). No concede nada nuevo.</summary>
+    internal static bool EnablePrivilege(string name)
+    {
+        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out IntPtr token))
+            return false;
+        try
+        {
+            if (!LookupPrivilegeValue(null, name, out var luid))
+                return false;
+            var tp = new TOKEN_PRIVILEGES { PrivilegeCount = 1, Luid = luid, Attributes = SE_PRIVILEGE_ENABLED };
+            return AdjustTokenPrivileges(token, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero) && Marshal.GetLastWin32Error() == 0;
+        }
+        finally
+        {
+            CloseHandle(token);
+        }
+    }
+
     /// <summary>Ruta completa del ejecutable de un proceso, o null si no se puede consultar (proceso protegido, ya cerrado...).</summary>
     internal static string? TryGetProcessPath(uint pid)
     {

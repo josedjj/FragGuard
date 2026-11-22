@@ -30,7 +30,6 @@ rule FG_Stealer_Steam_Session
         $exfil_upload3  = "transfer.sh" ascii wide nocase
 
     condition:
-        filesize < 50MB and
         $ssfn and 1 of ($vdf_*) and 1 of ($steam_*) and
         1 of ($exfil_*)
 }

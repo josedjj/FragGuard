@@ -34,7 +34,6 @@ rule FG_Stealer_Discord_TokenGrabber
         $exfil_telegram = "api.telegram.org/bot" ascii wide nocase
 
     condition:
-        filesize < 50MB and
         1 of ($path*) and
         1 of ($tok_*, $api_me) and
         1 of ($exfil_*)
@@ -59,5 +58,5 @@ rule FG_Stealer_Discord_Injection
         $target3 = "/billing" ascii wide
 
     condition:
-        filesize < 20MB and $core and $index and 2 of ($hook*) and 2 of ($target*)
+        $core and $index and 2 of ($hook*) and 2 of ($target*)
 }

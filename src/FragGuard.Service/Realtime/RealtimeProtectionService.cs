@@ -30,6 +30,7 @@ public sealed class RealtimeProtectionService : BackgroundService
     private readonly ThreatResponder _responder;
     private readonly SettingsStore _settings;
     private readonly UserFolderRegistry _userFolders;
+    private readonly Protection.RemovableDriveService _removable;
     private readonly ILogger<RealtimeProtectionService> _logger;
 
     private readonly Dictionary<string, FileSystemWatcher> _watchers = new(StringComparer.OrdinalIgnoreCase);
@@ -44,8 +45,10 @@ public sealed class RealtimeProtectionService : BackgroundService
     private sealed record Pending(DateTime LastEventUtc, DateTime NotBeforeUtc, int Attempt);
 
     public RealtimeProtectionService(FileScanner scanner, ThreatResponder responder, SettingsStore settings,
-        UserFolderRegistry userFolders, ILogger<RealtimeProtectionService> logger)
+        UserFolderRegistry userFolders, Protection.RemovableDriveService removable, ILogger<RealtimeProtectionService> logger)
     {
+        _removable = removable;
+        _removable.DrivesChanged += () => _refreshRequested = true;
         _scanner = scanner;
         _responder = responder;
         _settings = settings;
@@ -106,10 +109,21 @@ public sealed class RealtimeProtectionService : BackgroundService
             return;
         }
 
-        // Descargas de todos los perfiles (registro) + las que reporta la UI + carpetas configuradas (mods...)
-        var desired = ScanTargets.GetUserProfiles().Select(ScanTargets.GetDownloadsFolder)
+        // Por cada usuario: Descargas y Escritorio REALES (OneDrive puede redirigirlos), Temp y AppData\Roaming
+        // (donde se instalan la mayoría de stealers y droppers). Más las carpetas que reporta la UI, las
+        // configuradas (mods...) y las memorias USB conectadas.
+        var perUser = ScanTargets.GetUserProfiles().SelectMany(p => new[]
+        {
+            ScanTargets.GetDownloadsFolder(p),
+            ScanTargets.GetShellFolder(p, "Desktop", "Desktop"),
+            Path.Combine(p.ProfilePath, "AppData", "Local", "Temp"),
+            Path.Combine(p.ProfilePath, "AppData", "Roaming")
+        });
+        var removable = settings.RemovableDrivesEnabled ? _removable.CurrentDrives : (IEnumerable<string>)Array.Empty<string>();
+        var desired = perUser
             .Concat(_userFolders.Downloads)
             .Concat(settings.WatchedFolders)
+            .Concat(removable)
             .Where(Directory.Exists);
         var normalized = ScanTargets.Normalize(desired).ToHashSet(StringComparer.OrdinalIgnoreCase);
 

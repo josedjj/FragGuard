@@ -24,7 +24,7 @@ internal sealed class DetectedGame
 /// Juegos de Steam: libraryfolders.vdf → bibliotecas (puede haber varias en distintos discos)
 /// → steamapps\appmanifest_*.acf (nombre, carpeta, tamaño y LastPlayed).
 /// </summary>
-internal static class SteamGames
+public static class SteamGames
 {
     // Herramientas que Steam instala como "apps" pero que no son juegos.
     private static readonly HashSet<string> ToolAppIds = new() { "228980", "1070560", "1391110", "1628350", "1493710", "1826330", "2180100", "2348590", "961940", "1161040", "1580130", "1887720" };
@@ -41,7 +41,7 @@ internal static class SteamGames
         return null;
     }
 
-    public static IEnumerable<DetectedGame> Scan()
+    internal static IEnumerable<DetectedGame> Scan()
     {
         string? steam = FindSteamPath();
         if (steam is null)

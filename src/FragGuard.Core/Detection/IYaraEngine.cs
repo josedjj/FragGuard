@@ -24,4 +24,11 @@ public interface IYaraEngine : IDisposable
     IReadOnlyList<ThreatInfo> ScanFile(string path);
 
     IReadOnlyList<ThreatInfo> ScanMemory(byte[] buffer, int length);
+
+    /// <summary>
+    /// Analiza la memoria de un proceso en ejecución (solo LECTURA; no inyecta nada). Útil contra malware
+    /// empaquetado, que en disco está cifrado pero en memoria aparece desempaquetado. Lanza si no se puede
+    /// abrir el proceso (protegido, anti-cheat, ya terminado...).
+    /// </summary>
+    IReadOnlyList<ThreatInfo> ScanProcess(int pid);
 }

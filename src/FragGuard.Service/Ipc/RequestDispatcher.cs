@@ -31,12 +31,22 @@ public sealed class RequestDispatcher
     private readonly UserFolderRegistry _userFolders;
     private readonly FragGuard.Core.Games.GameLibrary _games;
     private readonly Updates.RulesUpdateService _rulesUpdates;
+    private readonly Protection.ProtectionStatusProvider _protection;
+    private readonly Protection.AutorunManager _autoruns;
+    private readonly Protection.PrivacyMonitorService _privacy;
+    private readonly Protection.MemoryScanService _memory;
     private readonly ILogger<RequestDispatcher> _logger;
 
     public RequestDispatcher(StatusProvider status, ScanCoordinator scans, ScanHistoryRepository history, DetectionRepository detections,
         QuarantineManager quarantine, SettingsStore settings, GameModeService gameMode, UserFolderRegistry userFolders,
-        FragGuard.Core.Games.GameLibrary games, Updates.RulesUpdateService rulesUpdates, ILogger<RequestDispatcher> logger)
+        FragGuard.Core.Games.GameLibrary games, Updates.RulesUpdateService rulesUpdates,
+        Protection.ProtectionStatusProvider protection, Protection.AutorunManager autoruns, Protection.PrivacyMonitorService privacy,
+        Protection.MemoryScanService memory, ILogger<RequestDispatcher> logger)
     {
+        _protection = protection;
+        _autoruns = autoruns;
+        _privacy = privacy;
+        _memory = memory;
         _games = games;
         _rulesUpdates = rulesUpdates;
         _status = status;
@@ -62,7 +72,9 @@ public sealed class RequestDispatcher
         MessageTypes.SetAbuseChKey,
         MessageTypes.RestoreQuarantine,
         MessageTypes.DeleteQuarantine,
-        MessageTypes.KillProcess
+        MessageTypes.KillProcess,
+        MessageTypes.DisableAutorun,
+        MessageTypes.RestoreAutorun
     };
 
     /// <summary>Se puede desactivar (solo para desarrollo) con FragGuard:RequireAdminForSensitiveOperations = false.</summary>
@@ -150,6 +162,28 @@ public sealed class RequestDispatcher
                     bool ok = result.Outcome is Core.Updates.RulesUpdateOutcome.Applied or Core.Updates.RulesUpdateOutcome.UpToDate or Core.Updates.RulesUpdateOutcome.NotAvailable;
                     return Reply(id, new OperationResult { Success = ok, Message = _rulesUpdates.LastResult }, Json.OperationResult);
                 }
+
+                case MessageTypes.GetProtectionStatus:
+                    return Reply(id, _protection.Get(), Json.ProtectionStatusDto);
+                case MessageTypes.ListAutoruns:
+                    return Reply(id, await Task.Run(_autoruns.List, ct).ConfigureAwait(false), Json.ListAutorunEntryDto);
+                case MessageTypes.DisableAutorun:
+                {
+                    var req = Require(request, Json.IdRequest);
+                    _logger.LogWarning("{User} desactiva el programa de inicio {Id}", client.User, req.Id);
+                    return Reply(id, _autoruns.Disable(req.Id), Json.OperationResult);
+                }
+                case MessageTypes.RestoreAutorun:
+                {
+                    var req = Require(request, Json.IdRequest);
+                    _logger.LogInformation("{User} restaura el programa de inicio {Id}", client.User, req.Id);
+                    return Reply(id, _autoruns.Restore(req.Id), Json.OperationResult);
+                }
+                case MessageTypes.GetDeviceUsage:
+                    return Reply(id, _privacy.Read(), Json.ListDeviceUsageDto);
+                case MessageTypes.ScanMemory:
+                    _logger.LogInformation("{User} solicita un escaneo de memoria", client.User);
+                    return Reply(id, _memory.Start(), Json.OperationResult);
 
                 case MessageTypes.FullscreenChanged:
                 {

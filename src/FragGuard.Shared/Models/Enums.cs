@@ -54,7 +54,9 @@ public enum ScanKind
     Full = 1,
     Custom = 2,
     Realtime = 3,
-    Scheduled = 4
+    Scheduled = 4,
+    /// <summary>Memoria de los procesos en ejecución.</summary>
+    Memory = 5
 }
 
 /// <summary>Estado de un escaneo.</summary>
@@ -76,5 +78,7 @@ public enum ThreatAction
     QuarantineFailed = 2,
     /// <summary>El original estaba en uso: se cifró una copia y se programó su borrado al reiniciar.</summary>
     QuarantinePendingReboot = 3,
-    Warned = 4
+    Warned = 4,
+    /// <summary>Se detuvo el proceso (regla de comportamiento: ransomware, desactivar defensas...).</summary>
+    ProcessTerminated = 5
 }

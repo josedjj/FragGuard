@@ -190,6 +190,9 @@ public sealed class YaraEngine : IYaraEngine
         }
     }
 
+    public IReadOnlyList<ThreatInfo> ScanProcess(int pid) =>
+        Scan(results => Methods.yr_rules_scan_proc(_rules, pid, 0, Callback, results, ScanTimeoutSeconds));
+
     /// <summary>Ejecuta un escaneo con las reglas actuales bajo el lock de lectura y recoge las coincidencias.</summary>
     private IReadOnlyList<ThreatInfo> Scan(Func<IntPtr, YARA_ERROR> scan)
     {

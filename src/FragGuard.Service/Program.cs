@@ -58,23 +58,29 @@ try
     builder.Services.AddSingleton<EventBroadcaster>();
     builder.Services.AddSingleton<ScanCoordinator>();
     builder.Services.AddSingleton<StatusProvider>();
-    builder.Services.AddSingleton(sp => new RequestDispatcher(
-        sp.GetRequiredService<StatusProvider>(), sp.GetRequiredService<ScanCoordinator>(),
-        sp.GetRequiredService<FragGuard.Core.Data.ScanHistoryRepository>(), sp.GetRequiredService<FragGuard.Core.Data.DetectionRepository>(),
-        sp.GetRequiredService<FragGuard.Core.Quarantine.QuarantineManager>(), sp.GetRequiredService<SettingsStore>(),
-        sp.GetRequiredService<GameModeService>(), sp.GetRequiredService<UserFolderRegistry>(),
-        sp.GetRequiredService<FragGuard.Core.Games.GameLibrary>(),
-        sp.GetRequiredService<FragGuard.Service.Updates.RulesUpdateService>(),
-        sp.GetRequiredService<ILogger<RequestDispatcher>>())
+    builder.Services.AddSingleton<FragGuard.Service.Protection.SelfIntegrity>();
+    builder.Services.AddSingleton<FragGuard.Service.Protection.AutorunManager>();
+    builder.Services.AddSingleton<FragGuard.Service.Protection.MemoryScanService>();
+    builder.Services.AddSingleton<FragGuard.Service.Protection.ProtectionStatusProvider>();
+    builder.Services.AddSingleton(sp =>
     {
-        RequireAdminForSensitiveOperations = builder.Configuration.GetValue("FragGuard:RequireAdminForSensitiveOperations", true)
+        var dispatcher = ActivatorUtilities.CreateInstance<RequestDispatcher>(sp);
+        dispatcher.RequireAdminForSensitiveOperations = builder.Configuration.GetValue("FragGuard:RequireAdminForSensitiveOperations", true);
+        return dispatcher;
     });
 
     // Servicios en segundo plano. El orden importa: StartupService inicializa el motor ANTES que el resto.
     builder.Services.AddHostedService<StartupService>();
     AddSingletonHostedService<ResourceMonitor>(builder.Services);
     AddSingletonHostedService<GameModeService>(builder.Services);
+    AddSingletonHostedService<FragGuard.Service.Protection.RemovableDriveService>(builder.Services);
     AddSingletonHostedService<RealtimeProtectionService>(builder.Services);
+    // Protección en ejecución (todo en modo usuario, sin drivers)
+    AddSingletonHostedService<FragGuard.Service.Protection.ProcessMonitorService>(builder.Services);
+    AddSingletonHostedService<FragGuard.Service.Protection.RansomwareShield>(builder.Services);
+    AddSingletonHostedService<FragGuard.Service.Protection.PersistenceMonitorService>(builder.Services);
+    AddSingletonHostedService<FragGuard.Service.Protection.AccountProtectionService>(builder.Services);
+    AddSingletonHostedService<FragGuard.Service.Protection.PrivacyMonitorService>(builder.Services);
     builder.Services.AddHostedService<ScheduledScanService>();
     AddSingletonHostedService<FragGuard.Service.Updates.RulesUpdateService>(builder.Services);
     builder.Services.AddHostedService<PipeServer>();

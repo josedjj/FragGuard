@@ -54,14 +54,23 @@ public sealed class ThreatResponder
             detection.QuarantineId = outcome.QuarantineId;
         }
 
+        return Report(detection);
+    }
+
+    /// <summary>
+    /// Registra en el historial y notifica una detección ya resuelta (también las de comportamiento,
+    /// ransomware o acceso a cuentas, que no son un archivo analizado).
+    /// </summary>
+    public DetectionDto Report(DetectionDto detection)
+    {
         try
         {
             detection.Id = _detections.Add(detection);
         }
         catch (Exception ex)
         {
-            // Si la BD falla seguimos: la cuarentena ya se hizo y el aviso debe llegar al usuario.
-            _logger.LogError(ex, "No se pudo registrar la detección de {Path}", result.Path);
+            // Si la BD falla seguimos: la acción ya se tomó y el aviso debe llegar al usuario.
+            _logger.LogError(ex, "No se pudo registrar la detección de {Path}", detection.FilePath);
         }
 
         _logger.LogWarning("Amenaza {Verdict}: {Path} [{Threats}] -> {Action}",

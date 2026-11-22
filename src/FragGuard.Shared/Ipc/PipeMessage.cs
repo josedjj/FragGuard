@@ -44,6 +44,18 @@ public static class MessageTypes
     public const string ListGames = "ListGames";
     /// <summary>Comprobar ahora el canal firmado de reglas.</summary>
     public const string CheckRuleUpdates = "CheckRuleUpdates";
+    /// <summary>Estado de los módulos de protección en ejecución.</summary>
+    public const string GetProtectionStatus = "GetProtectionStatus";
+    /// <summary>Programas de inicio (registro, carpeta Inicio, tareas, servicios).</summary>
+    public const string ListAutoruns = "ListAutoruns";
+    /// <summary>Desactivar un programa de inicio (IdRequest). Requiere administrador.</summary>
+    public const string DisableAutorun = "DisableAutorun";
+    /// <summary>Restaurar un programa de inicio desactivado por FragGuard (IdRequest). Requiere administrador.</summary>
+    public const string RestoreAutorun = "RestoreAutorun";
+    /// <summary>Uso reciente de cámara y micrófono.</summary>
+    public const string GetDeviceUsage = "GetDeviceUsage";
+    /// <summary>Escaneo de la memoria de los procesos en ejecución (no se permite en modo juego).</summary>
+    public const string ScanMemory = "ScanMemory";
 
     // ----- Respuesta -----
     public const string Response = "Response";

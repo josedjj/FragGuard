@@ -31,7 +31,6 @@ rule FG_Dropper_DefenderExclusion_Download
         $run3 = "iex" fullword ascii wide nocase
 
     condition:
-        filesize < 10MB and
         (($excl1 and $excl2) or $excl3) and
         1 of ($dl*) and
         1 of ($run*)
@@ -53,5 +52,5 @@ rule FG_Suspicious_HiddenPowerShell_Cradle
         $net    = "Net.WebClient" ascii wide nocase
 
     condition:
-        filesize < 5MB and $ps and $hidden and ($bypass or $enc) and ($net or $enc)
+        $ps and $hidden and ($bypass or $enc) and ($net or $enc)
 }

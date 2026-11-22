@@ -41,7 +41,6 @@ rule FG_Stealer_Browser_Credentials
         $exfil_telegram = "api.telegram.org/bot" ascii wide nocase
 
     condition:
-        filesize < 50MB and
         3 of ($b_*) and
         3 of ($f_*) and
         (1 of ($sql_*) or 1 of ($exfil_*))
@@ -66,7 +65,6 @@ rule FG_Stealer_Gamer_MultiTarget
         $exfil2  = "api.telegram.org/bot" ascii wide nocase
 
     condition:
-        filesize < 50MB and
         4 of ($discord, $steam, $browser, $epic, $riot, $mc) and
         1 of ($exfil*)
 }

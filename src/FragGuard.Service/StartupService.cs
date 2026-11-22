@@ -12,12 +12,14 @@ public sealed class StartupService : IHostedService
 {
     private readonly EngineBootstrapper _bootstrapper;
     private readonly ProcessPriority _priority;
+    private readonly Protection.SelfIntegrity _integrity;
     private readonly ILogger<StartupService> _logger;
 
-    public StartupService(EngineBootstrapper bootstrapper, ProcessPriority priority, ILogger<StartupService> logger)
+    public StartupService(EngineBootstrapper bootstrapper, ProcessPriority priority, Protection.SelfIntegrity integrity, ILogger<StartupService> logger)
     {
         _bootstrapper = bootstrapper;
         _priority = priority;
+        _integrity = integrity;
         _logger = logger;
     }
 
@@ -25,6 +27,7 @@ public sealed class StartupService : IHostedService
     {
         _priority.ApplyDefault();
         _bootstrapper.Initialize();
+        _integrity.Check();
 
         // La compilación de reglas y la carga inicial dejan basura: la liberamos cuando todo está en marcha.
         _ = Task.Run(async () =>

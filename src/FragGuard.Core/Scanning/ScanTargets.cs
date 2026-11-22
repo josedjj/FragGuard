@@ -76,6 +76,33 @@ public static class ScanTargets
         return Path.Combine(profile.ProfilePath, "Downloads");
     }
 
+    /// <summary>
+    /// Ruta REAL de una carpeta de usuario ("Personal" = Documentos, "My Pictures", "Desktop"...) según su registro.
+    /// Con OneDrive, Escritorio y Documentos suelen estar redirigidos a OneDrive\...; si no se puede leer
+    /// (usuario sin sesión iniciada), se usa la ruta por defecto.
+    /// </summary>
+    public static string GetShellFolder(UserProfile profile, string valueName, string defaultSubfolder)
+    {
+        if (!string.IsNullOrEmpty(profile.Sid))
+        {
+            try
+            {
+                using var key = Registry.Users.OpenSubKey($@"{profile.Sid}\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders");
+                if (key?.GetValue(valueName, null, RegistryValueOptions.DoNotExpandEnvironmentNames) is string raw)
+                {
+                    string expanded = Environment.ExpandEnvironmentVariables(
+                        raw.Replace("%USERPROFILE%", profile.ProfilePath, StringComparison.OrdinalIgnoreCase));
+                    if (Directory.Exists(expanded))
+                        return expanded;
+                }
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+            {
+            }
+        }
+        return Path.Combine(profile.ProfilePath, defaultSubfolder);
+    }
+
     /// <summary>Escaneo rápido: Descargas, Escritorio y AppData\Local\Temp de cada usuario (+ carpetas extra).</summary>
     public static List<string> GetQuickScanRoots(IEnumerable<string>? extraFolders = null)
     {
@@ -83,7 +110,7 @@ public static class ScanTargets
         foreach (var profile in GetUserProfiles())
         {
             roots.Add(GetDownloadsFolder(profile));
-            roots.Add(Path.Combine(profile.ProfilePath, "Desktop"));
+            roots.Add(GetShellFolder(profile, "Desktop", "Desktop"));
             roots.Add(Path.Combine(profile.ProfilePath, "AppData", "Local", "Temp"));
         }
         if (extraFolders is not null)
