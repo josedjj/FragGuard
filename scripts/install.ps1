@@ -95,9 +95,28 @@ if ($existing -and $existing.Status -ne 'Stopped') {
     (Get-Service $ServiceName).WaitForStatus('Stopped', [TimeSpan]::FromSeconds(30))
 }
 
+# "Stopped" no garantiza que el proceso haya salido: hasta que termina, sus DLL siguen bloqueadas.
+$proc = Get-Process FragGuard.Service -ErrorAction SilentlyContinue
+if ($proc) {
+    if (-not $proc.WaitForExit(15000)) {
+        Write-Host '    El proceso del servicio no termina; se fuerza el cierre.' -ForegroundColor Yellow
+        $proc | Stop-Process -Force
+        $proc.WaitForExit(5000) | Out-Null
+    }
+}
+
 Write-Host "==> Copiando el servicio a $serviceDir..." -ForegroundColor Cyan
 New-Item -ItemType Directory -Force -Path $serviceDir | Out-Null
-Copy-Item -Path (Join-Path $servicePublish '*') -Destination $serviceDir -Recurse -Force
+for ($i = 1; ; $i++) {
+    try {
+        Copy-Item -Path (Join-Path $servicePublish '*') -Destination $serviceDir -Recurse -Force -ErrorAction Stop
+        break
+    } catch [System.IO.IOException] {
+        if ($i -ge 5) { throw }
+        Write-Host "    Archivo en uso, reintentando ($i/5)..." -ForegroundColor Yellow
+        Start-Sleep -Seconds 2
+    }
+}
 
 $serviceExe = Join-Path $serviceDir 'FragGuard.Service.exe'
 if (-not $existing) {
