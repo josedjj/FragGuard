@@ -30,13 +30,15 @@ public sealed class RequestDispatcher
     private readonly GameModeService _gameMode;
     private readonly UserFolderRegistry _userFolders;
     private readonly FragGuard.Core.Games.GameLibrary _games;
+    private readonly Updates.RulesUpdateService _rulesUpdates;
     private readonly ILogger<RequestDispatcher> _logger;
 
     public RequestDispatcher(StatusProvider status, ScanCoordinator scans, ScanHistoryRepository history, DetectionRepository detections,
         QuarantineManager quarantine, SettingsStore settings, GameModeService gameMode, UserFolderRegistry userFolders,
-        FragGuard.Core.Games.GameLibrary games, ILogger<RequestDispatcher> logger)
+        FragGuard.Core.Games.GameLibrary games, Updates.RulesUpdateService rulesUpdates, ILogger<RequestDispatcher> logger)
     {
         _games = games;
+        _rulesUpdates = rulesUpdates;
         _status = status;
         _scans = scans;
         _history = history;
@@ -57,6 +59,7 @@ public sealed class RequestDispatcher
     {
         MessageTypes.UpdateSettings,
         MessageTypes.SetVirusTotalKey,
+        MessageTypes.SetAbuseChKey,
         MessageTypes.RestoreQuarantine,
         MessageTypes.DeleteQuarantine,
         MessageTypes.KillProcess
@@ -132,6 +135,20 @@ public sealed class RequestDispatcher
                     _logger.LogInformation("{User} cambia la clave de VirusTotal", client.User);
                     _settings.SetVirusTotalKey(req.ApiKey);
                     return Reply(id, OperationResult.Ok(), Json.OperationResult);
+                }
+
+                case MessageTypes.SetAbuseChKey:
+                {
+                    var req = Require(request, Json.SetVirusTotalKeyRequest);
+                    _logger.LogInformation("{User} cambia la Auth-Key de abuse.ch", client.User);
+                    _settings.SetAbuseChKey(req.ApiKey);
+                    return Reply(id, OperationResult.Ok(), Json.OperationResult);
+                }
+                case MessageTypes.CheckRuleUpdates:
+                {
+                    var result = await _rulesUpdates.CheckNowAsync(ct).ConfigureAwait(false);
+                    bool ok = result.Outcome is Core.Updates.RulesUpdateOutcome.Applied or Core.Updates.RulesUpdateOutcome.UpToDate or Core.Updates.RulesUpdateOutcome.NotAvailable;
+                    return Reply(id, new OperationResult { Success = ok, Message = _rulesUpdates.LastResult }, Json.OperationResult);
                 }
 
                 case MessageTypes.FullscreenChanged:

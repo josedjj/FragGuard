@@ -33,6 +33,8 @@ public static class MessageTypes
     public const string GetSettings = "GetSettings";
     public const string UpdateSettings = "UpdateSettings";
     public const string SetVirusTotalKey = "SetVirusTotalKey";
+    /// <summary>Guarda la Auth-Key de abuse.ch (mismo payload que SetVirusTotalKey).</summary>
+    public const string SetAbuseChKey = "SetAbuseChKey";
     /// <summary>La UI informa de que hay (o no) una app a pantalla completa en la sesión del usuario.</summary>
     public const string FullscreenChanged = "FullscreenChanged";
     /// <summary>La UI envía las carpetas conocidas del usuario (Descargas, Escritorio) resueltas en su sesión.</summary>
@@ -40,6 +42,8 @@ public static class MessageTypes
     public const string KillProcess = "KillProcess";
     /// <summary>Lista de juegos instalados (solo lectura).</summary>
     public const string ListGames = "ListGames";
+    /// <summary>Comprobar ahora el canal firmado de reglas.</summary>
+    public const string CheckRuleUpdates = "CheckRuleUpdates";
 
     // ----- Respuesta -----
     public const string Response = "Response";

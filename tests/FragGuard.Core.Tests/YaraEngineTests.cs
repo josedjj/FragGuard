@@ -24,8 +24,8 @@ public class YaraEngineTests : IDisposable
     public void AllShippedRules_Compile()
     {
         var yara = _env.Get<IYaraEngine>();
-        // 8 reglas de ejemplo + 1 de test. Si alguna no compila, YaraEngine la omite y este número baja.
-        Assert.Equal(9, yara.RuleCount);
+        // 13 reglas de ejemplo (incluidas PUP y mineros) + 1 de test. Si alguna no compila, YaraEngine la omite y este número baja.
+        Assert.Equal(14, yara.RuleCount);
         Assert.NotEqual("none", yara.RulesVersion);
     }
 
@@ -86,7 +86,7 @@ public class YaraEngineTests : IDisposable
         File.WriteAllText(Path.Combine(_env.RulesDir, "broken.yar"), "rule roto { condition: ");
         var yara = _env.Get<IYaraEngine>();
         yara.LoadRules(_env.RulesDir);
-        Assert.Equal(9, yara.RuleCount);
+        Assert.Equal(14, yara.RuleCount);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class YaraEngineTests : IDisposable
         });
 
         await Task.WhenAll(scanners.Append(reloader));
-        Assert.Equal(9, yara.RuleCount);
+        Assert.Equal(14, yara.RuleCount);
     }
 
     public void Dispose() => _env.Dispose();

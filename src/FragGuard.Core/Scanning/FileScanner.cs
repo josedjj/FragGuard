@@ -4,6 +4,7 @@ using FragGuard.Core.Data;
 using FragGuard.Core.Detection;
 using FragGuard.Core.Hashing;
 using FragGuard.Core.IO;
+using FragGuard.Core.Security;
 using FragGuard.Shared.Models;
 using Microsoft.Extensions.Logging;
 
@@ -38,6 +39,10 @@ public sealed class FileScanResult
     public SkipReason SkipReason { get; set; }
     public string? Error { get; set; }
     public bool FromCache { get; set; }
+    /// <summary>De dónde se descargó (Mark-of-the-Web), si se sabe.</summary>
+    public string? SourceUrl { get; set; }
+    /// <summary>Editor de la firma Authenticode válida, si la tiene (solo se calcula cuando hay amenazas).</summary>
+    public string? Signer { get; set; }
 
     public bool IsThreat => Verdict is FileVerdict.Malicious or FileVerdict.Suspicious;
 }
@@ -55,6 +60,7 @@ public sealed class FileScanner
     private readonly IYaraEngine _yara;
     private readonly ArchiveScanner _archives;
     private readonly VirusTotalClient _vt;
+    private readonly AbuseChClient _abuse;
     private readonly HashCacheRepository _cache;
     private readonly AllowListRepository _allowList;
     private readonly SettingsStore _settings;
@@ -62,12 +68,13 @@ public sealed class FileScanner
     private readonly FragGuardPaths _paths;
     private readonly ILogger<FileScanner> _logger;
 
-    public FileScanner(IYaraEngine yara, ArchiveScanner archives, VirusTotalClient vt, HashCacheRepository cache,
+    public FileScanner(IYaraEngine yara, ArchiveScanner archives, VirusTotalClient vt, AbuseChClient abuse, HashCacheRepository cache,
         AllowListRepository allowList, SettingsStore settings, EngineOptions options, FragGuardPaths paths, ILogger<FileScanner> logger)
     {
         _yara = yara;
         _archives = archives;
         _vt = vt;
+        _abuse = abuse;
         _cache = cache;
         _allowList = allowList;
         _settings = settings;
@@ -196,16 +203,33 @@ public sealed class FileScanner
                 cacheDirty = true;
             }
 
-            // 5) VirusTotal: solo si lo local no encontró nada grave, es un tipo relevante y no se consultó ya.
-            if (!vtChecked && !HasMalicious(contentThreats) && ShouldQueryVirusTotal(path, settings))
+            // 5) Nube: VirusTotal + MalwareBazaar (solo hashes). Únicamente si lo local no encontró nada grave
+            //    y el tipo de archivo es relevante. Se marca como "consultado" cuando TODAS las fuentes
+            //    configuradas respondieron; si alguna no tenía cuota o falló, se reintentará más adelante.
+            if (!vtChecked && !HasMalicious(contentThreats) && IsCloudRelevant(path))
             {
-                var vt = await _vt.LookupAsync(result.Sha256, context.WaitForVirusTotal ? TimeSpan.FromSeconds(15) : TimeSpan.Zero, ct).ConfigureAwait(false);
-                if (vt.Status is VtStatus.Found or VtStatus.Unknown)
+                bool vtOn = settings.VirusTotalEnabled && _vt.IsConfigured;
+                bool mbOn = settings.AbuseChEnabled && _abuse.IsConfigured;
+                bool vtDone = true, mbDone = true;
+
+                if (vtOn)
+                {
+                    var vt = await _vt.LookupAsync(result.Sha256, context.WaitForVirusTotal ? TimeSpan.FromSeconds(15) : TimeSpan.Zero, ct).ConfigureAwait(false);
+                    vtDone = vt.Status is VtStatus.Found or VtStatus.Unknown;
+                    if (MapVirusTotal(vt) is { } vtThreat && AddUnique(contentThreats, vtThreat))
+                        cacheDirty = true;
+                }
+                if (mbOn)
+                {
+                    var mb = await _abuse.LookupHashAsync(result.Sha256, ct).ConfigureAwait(false);
+                    mbDone = mb.Status is AbuseStatus.Found or AbuseStatus.NotFound;
+                    if (MapMalwareBazaar(mb) is { } mbThreat && AddUnique(contentThreats, mbThreat))
+                        cacheDirty = true;
+                }
+                if ((vtOn || mbOn) && vtDone && mbDone)
                 {
                     vtChecked = true;
                     cacheDirty = true;
-                    if (MapVirusTotal(vt) is { } vtThreat)
-                        contentThreats.Add(vtThreat);
                 }
             }
 
@@ -215,6 +239,29 @@ public sealed class FileScanner
             result.Threats.AddRange(contentThreats);
             if (lure is not null)
                 result.Threats.Add(lure);
+
+            // 6) Origen (Mark-of-the-Web): de dónde se descargó. Si la URL exacta está registrada en URLhaus
+            //    como distribuidora de malware, es una señal fuerte por sí misma.
+            if (IsCloudRelevant(path) && MarkOfTheWeb.Read(path) is { } origin)
+            {
+                result.SourceUrl = origin.HostUrl ?? origin.ReferrerUrl;
+                if (origin.IsFromInternet && origin.HostUrl is { } url && settings.AbuseChEnabled && _abuse.IsConfigured)
+                {
+                    var uh = await _abuse.LookupUrlAsync(url, ct).ConfigureAwait(false);
+                    if (uh is { Status: AbuseStatus.Found, Threat: "malware_download" })
+                        AddUnique(result.Threats, new ThreatInfo
+                        {
+                            Name = "URLhaus.MalwareDownload",
+                            Category = "Reputación",
+                            Severity = ThreatSeverity.High,
+                            Source = DetectionSource.Reputation,
+                            Description = $"Descargado de una URL registrada en URLhaus como distribuidora de malware ({origin.Host})."
+                        });
+                }
+            }
+
+            // 7) Ajustes finales: categoría PUP opcional y firma digital para reducir falsos positivos.
+            ApplyPolicy(result, settings);
             result.Verdict = ComputeVerdict(result.Threats);
         }
         finally
@@ -239,8 +286,63 @@ public sealed class FileScanner
         }
     }
 
-    private bool ShouldQueryVirusTotal(string path, FragGuardSettings settings) =>
-        settings.VirusTotalEnabled && _vt.IsConfigured && _options.VirusTotalExtensions.Contains(Path.GetExtension(path));
+    /// <summary>Tipos para los que merece la pena gastar consultas en la nube y leer Mark-of-the-Web.</summary>
+    private bool IsCloudRelevant(string path) => _options.VirusTotalExtensions.Contains(Path.GetExtension(path));
+
+    /// <summary>Añade una amenaza si no hay ya otra con el mismo nombre (evita duplicados al reintentar consultas).</summary>
+    private static bool AddUnique(List<ThreatInfo> threats, ThreatInfo threat)
+    {
+        if (threats.Any(t => t.Name.Equals(threat.Name, StringComparison.OrdinalIgnoreCase)))
+            return false;
+        threats.Add(threat);
+        return true;
+    }
+
+    /// <summary>Una muestra conocida en MalwareBazaar es malware confirmado por analistas: gravedad crítica.</summary>
+    internal static ThreatInfo? MapMalwareBazaar(AbuseHashResult mb)
+    {
+        if (mb.Status != AbuseStatus.Found)
+            return null;
+        string family = string.IsNullOrWhiteSpace(mb.Signature) ? "Malware" : mb.Signature!;
+        string tags = mb.Tags is { Count: > 0 } ? $" Etiquetas: {string.Join(", ", mb.Tags.Take(5))}." : "";
+        return new ThreatInfo
+        {
+            Name = $"MB.{family}",
+            Category = "Reputación",
+            Severity = ThreatSeverity.Critical,
+            Source = DetectionSource.Reputation,
+            Description = $"Muestra de malware conocida en MalwareBazaar (familia: {family}).{tags}"
+        };
+    }
+
+    /// <summary>
+    /// Política final:
+    ///  - Si el usuario desactivó la detección de PUP, se quitan esas detecciones.
+    ///  - Si el archivo está firmado por un editor de confianza (Valve, Riot, Microsoft, NVIDIA...), la heurística
+    ///    de nombres y los PUP no aplican, y las reglas YARA locales (genéricas, basadas en cadenas) bajan a
+    ///    "sospechoso" en vez de mandar el archivo a cuarentena. VirusTotal y MalwareBazaar NO se relajan:
+    ///    si un certificado legítimo se usa para firmar malware, esas fuentes lo reflejan.
+    /// </summary>
+    private static void ApplyPolicy(FileScanResult result, FragGuardSettings settings)
+    {
+        if (!settings.DetectPup)
+            result.Threats.RemoveAll(t => t.Category == "PUP");
+        if (result.Threats.Count == 0)
+            return;
+
+        var signature = Authenticode.Verify(result.Path);
+        if (signature.IsValid)
+            result.Signer = signature.Publisher;
+        if (!signature.IsTrustedPublisher)
+            return;
+
+        result.Threats.RemoveAll(t => t.Source == DetectionSource.Heuristic || t.Category is "PUP" or "Miner");
+        foreach (var t in result.Threats.Where(t => t.Source == DetectionSource.Yara && t.Severity >= ThreatSeverity.High))
+        {
+            t.Severity = ThreatSeverity.Medium;
+            t.Description += $" (Firmado por {signature.Publisher}: probable falso positivo.)";
+        }
+    }
 
     /// <summary>
     /// Umbrales de VirusTotal: ≥3 motores "malicious" = malicioso (≥10 crítico); 1-2 o ≥3 "suspicious" = sospechoso.

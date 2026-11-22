@@ -35,6 +35,41 @@ public sealed class FragGuardSettings
     /// <summary>Solo lectura para la UI: indica si hay una clave de VirusTotal guardada.</summary>
     public bool HasVirusTotalKey { get; set; }
 
+    /// <summary>Consultar MalwareBazaar (hash) y URLhaus (URL de descarga) de abuse.ch (requiere Auth-Key gratuita).</summary>
+    public bool AbuseChEnabled { get; set; } = true;
+
+    /// <summary>Solo lectura para la UI: indica si hay una Auth-Key de abuse.ch guardada.</summary>
+    public bool HasAbuseChKey { get; set; }
+
+    /// <summary>
+    /// Detectar programas potencialmente no deseados (adware, bundlers, toolbars). Solo AVISA: nunca se ponen
+    /// en cuarentena automáticamente, porque a veces el usuario los instala a propósito.
+    /// </summary>
+    public bool DetectPup { get; set; } = true;
+
+    /// <summary>Descargar y aplicar automáticamente reglas YARA nuevas del canal firmado de FragGuard.</summary>
+    public bool AutoUpdateRules { get; set; } = true;
+
+    // ---------- Protección en ejecución (todo en modo usuario: sin drivers) ----------
+
+    /// <summary>Analizar cada programa al arrancar y aplicar reglas de comportamiento a su línea de comandos.</summary>
+    public bool ProcessMonitorEnabled { get; set; } = true;
+
+    /// <summary>Escudo anti-ransomware: archivos señuelo + detección de cambios masivos + borrado de copias de seguridad.</summary>
+    public bool RansomwareShieldEnabled { get; set; } = true;
+
+    /// <summary>Avisar si un programa desconocido lee los tokens de Discord o la sesión de Steam (auditoría de Windows).</summary>
+    public bool AccountProtectionEnabled { get; set; } = true;
+
+    /// <summary>Avisar cuando un programa sin firmar o desconocido usa la cámara o el micrófono.</summary>
+    public bool PrivacyMonitorEnabled { get; set; } = true;
+
+    /// <summary>Vigilar los programas que se añaden al inicio de Windows y las exclusiones de Windows Defender.</summary>
+    public bool PersistenceMonitorEnabled { get; set; } = true;
+
+    /// <summary>Analizar las memorias USB y discos extraíbles al conectarlos.</summary>
+    public bool RemovableDrivesEnabled { get; set; } = true;
+
     // ---------- Modo juego ----------
     public bool GameModeAuto { get; set; } = true;
 

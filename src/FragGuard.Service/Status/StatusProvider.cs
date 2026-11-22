@@ -22,11 +22,15 @@ public sealed class StatusProvider
     private readonly IYaraEngine _yara;
     private readonly VirusTotalClient _vt;
     private readonly ResourceMonitor _resources;
+    private readonly AbuseChClient _abuse;
+    private readonly Updates.RulesUpdateService _rulesUpdates;
 
     public StatusProvider(SettingsStore settings, RealtimeProtectionService realtime, GameModeService gameMode, ScanCoordinator scans,
         ScanHistoryRepository history, DetectionRepository detections, QuarantineRepository quarantine,
-        IYaraEngine yara, VirusTotalClient vt, ResourceMonitor resources)
+        IYaraEngine yara, VirusTotalClient vt, ResourceMonitor resources, AbuseChClient abuse, Updates.RulesUpdateService rulesUpdates)
     {
+        _abuse = abuse;
+        _rulesUpdates = rulesUpdates;
         _settings = settings;
         _realtime = realtime;
         _gameMode = gameMode;
@@ -47,7 +51,10 @@ public sealed class StatusProvider
         GameModeActive = _gameMode.IsActive,
         GameModeReason = _gameMode.Reason,
         VirusTotalConfigured = _settings.Current.VirusTotalEnabled && _vt.IsConfigured,
+        AbuseChConfigured = _settings.Current.AbuseChEnabled && _abuse.IsConfigured,
         YaraRuleCount = _yara.RuleCount,
+        RulesUpdateVersion = _rulesUpdates.InstalledVersion,
+        RulesUpdateStatus = _rulesUpdates.LastResult,
         LastScan = _history.GetLastCompleted(),
         ActiveScan = _scans.ActiveProgress,
         ThreatsBlockedTotal = _detections.CountBlocked(),

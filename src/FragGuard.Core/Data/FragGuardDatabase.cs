@@ -95,6 +95,18 @@ public sealed class FragGuardDatabase
                 Note        TEXT
             );
             """);
+
+        // Migraciones: columnas añadidas en versiones posteriores (idempotentes).
+        AddColumnIfMissing(c, "Detections", "SourceUrl", "TEXT");
+        AddColumnIfMissing(c, "Detections", "Signer", "TEXT");
+    }
+
+    private static void AddColumnIfMissing(SqliteConnection c, string table, string column, string type)
+    {
+        bool exists = c.Query<string>($"SELECT name FROM pragma_table_info('{table}')")
+            .Any(n => n.Equals(column, StringComparison.OrdinalIgnoreCase));
+        if (!exists)
+            c.Execute($"ALTER TABLE {table} ADD COLUMN {column} {type}");
     }
 
     public static long ToUnixMs(DateTime utc) => new DateTimeOffset(DateTime.SpecifyKind(utc, DateTimeKind.Utc)).ToUnixTimeMilliseconds();

@@ -55,6 +55,8 @@ internal sealed class DetectionRow
     public string ThreatsJson { get; set; } = "[]";
     public string? QuarantineId { get; set; }
     public long DetectedUnixMs { get; set; }
+    public string? SourceUrl { get; set; }
+    public string? Signer { get; set; }
 }
 
 internal sealed class QuarantineRow
@@ -206,14 +208,15 @@ public sealed class DetectionRepository
     {
         using var c = _db.Open();
         return c.ExecuteScalar<long>("""
-            INSERT INTO Detections (ScanId, ScanKind, FilePath, Sha256, Verdict, Action, ThreatsJson, QuarantineId, DetectedUnixMs)
-            VALUES (@ScanId, @ScanKind, @FilePath, @Sha256, @Verdict, @Action, @ThreatsJson, @QuarantineId, @Detected);
+            INSERT INTO Detections (ScanId, ScanKind, FilePath, Sha256, Verdict, Action, ThreatsJson, QuarantineId, DetectedUnixMs, SourceUrl, Signer)
+            VALUES (@ScanId, @ScanKind, @FilePath, @Sha256, @Verdict, @Action, @ThreatsJson, @QuarantineId, @Detected, @SourceUrl, @Signer);
             SELECT last_insert_rowid();
             """,
             new
             {
                 d.ScanId, ScanKind = (int)d.ScanKind, d.FilePath, d.Sha256, Verdict = (int)d.Verdict, Action = (int)d.Action,
-                ThreatsJson = HashCacheRepository.SerializeThreats(d.Threats), d.QuarantineId, Detected = ToUnixMs(d.DetectedUtc)
+                ThreatsJson = HashCacheRepository.SerializeThreats(d.Threats), d.QuarantineId, Detected = ToUnixMs(d.DetectedUtc),
+                d.SourceUrl, d.Signer
             });
     }
 
@@ -232,7 +235,9 @@ public sealed class DetectionRepository
                 Action = (ThreatAction)r.Action,
                 Threats = HashCacheRepository.DeserializeThreats(r.ThreatsJson),
                 QuarantineId = r.QuarantineId,
-                DetectedUtc = FromUnixMs(r.DetectedUnixMs)
+                DetectedUtc = FromUnixMs(r.DetectedUnixMs),
+                SourceUrl = r.SourceUrl,
+                Signer = r.Signer
             }).ToList();
     }
 

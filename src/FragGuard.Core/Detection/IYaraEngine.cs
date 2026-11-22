@@ -14,8 +14,12 @@ public interface IYaraEngine : IDisposable
     /// <summary>Huella de las reglas cargadas. Si cambia, la caché de hashes deja de ser válida.</summary>
     string RulesVersion { get; }
 
-    /// <summary>(Re)compila todas las reglas .yar/.yara de la carpeta. Las reglas con errores se omiten y se registran.</summary>
-    void LoadRules(string rulesDirectory);
+    /// <summary>
+    /// (Re)compila todas las reglas .yar/.yara de las carpetas indicadas (en orden: un archivo con el mismo nombre
+    /// en una carpeta posterior sustituye al anterior, así las reglas actualizadas reemplazan a las de serie).
+    /// Las reglas con errores se omiten y se registran.
+    /// </summary>
+    void LoadRules(params string[] rulesDirectories);
 
     IReadOnlyList<ThreatInfo> ScanFile(string path);
 

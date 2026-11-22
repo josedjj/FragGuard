@@ -28,6 +28,12 @@ public sealed class DetectionDto
     public string? QuarantineId { get; set; }
     public DateTime DetectedUtc { get; set; }
 
+    /// <summary>Origen de la descarga según Mark-of-the-Web (Zone.Identifier), si existe.</summary>
+    public string? SourceUrl { get; set; }
+
+    /// <summary>Editor que firmó el archivo (Authenticode), si está firmado y la firma es válida.</summary>
+    public string? Signer { get; set; }
+
     /// <summary>Nombre de la amenaza principal (la de mayor gravedad).</summary>
     public string PrimaryThreatName =>
         Threats.OrderByDescending(t => t.Severity).FirstOrDefault()?.Name ?? "Desconocida";
@@ -92,7 +98,11 @@ public sealed class StatusDto
     public bool GameModeActive { get; set; }
     public string? GameModeReason { get; set; }
     public bool VirusTotalConfigured { get; set; }
+    public bool AbuseChConfigured { get; set; }
     public int YaraRuleCount { get; set; }
+    /// <summary>Versión de las reglas descargadas del canal firmado (0 = solo las de serie).</summary>
+    public long RulesUpdateVersion { get; set; }
+    public string? RulesUpdateStatus { get; set; }
     public ScanSummaryDto? LastScan { get; set; }
     public ScanProgressDto? ActiveScan { get; set; }
     public long ThreatsBlockedTotal { get; set; }

@@ -18,13 +18,15 @@ public sealed class SettingsStore
     private readonly object _sync = new();
     private FragGuardSettings _current;
     private string? _vtKeyCache;
+    private string? _abuseKeyCache;
 
     public SettingsStore(FragGuardPaths paths, ILogger<SettingsStore> logger)
     {
         _paths = paths;
         _logger = logger;
         _current = Load();
-        _vtKeyCache = LoadVirusTotalKey();
+        _vtKeyCache = LoadSecret(_paths.VirusTotalKeyPath);
+        _abuseKeyCache = LoadSecret(_paths.AbuseChKeyPath);
     }
 
     /// <summary>Se dispara tras guardar una configuración nueva.</summary>
@@ -40,6 +42,7 @@ public sealed class SettingsStore
     {
         var copy = Clone(Current);
         copy.HasVirusTotalKey = !string.IsNullOrEmpty(GetVirusTotalKey());
+        copy.HasAbuseChKey = !string.IsNullOrEmpty(GetAbuseChKey());
         return copy;
     }
 
@@ -65,27 +68,43 @@ public sealed class SettingsStore
     public void SetVirusTotalKey(string? apiKey)
     {
         lock (_sync)
-        {
-            if (string.IsNullOrWhiteSpace(apiKey))
-            {
-                File.Delete(_paths.VirusTotalKeyPath);
-                _vtKeyCache = null;
-            }
-            else
-            {
-                string trimmed = apiKey.Trim();
-                SecretProtector.SaveToFile(_paths.VirusTotalKeyPath, Encoding.UTF8.GetBytes(trimmed));
-                _vtKeyCache = trimmed;
-            }
-        }
+            _vtKeyCache = SaveSecret(_paths.VirusTotalKeyPath, apiKey);
         // Nunca registramos la clave en el log, solo el hecho de que cambió.
         _logger.LogInformation("Clave de VirusTotal {Action}", string.IsNullOrWhiteSpace(apiKey) ? "eliminada" : "actualizada");
         Changed?.Invoke(Current);
     }
 
-    private string? LoadVirusTotalKey()
+    // ---------------- abuse.ch ----------------
+
+    public string? GetAbuseChKey()
     {
-        byte[]? plain = SecretProtector.LoadFromFile(_paths.VirusTotalKeyPath);
+        lock (_sync) return _abuseKeyCache;
+    }
+
+    public void SetAbuseChKey(string? apiKey)
+    {
+        lock (_sync)
+            _abuseKeyCache = SaveSecret(_paths.AbuseChKeyPath, apiKey);
+        _logger.LogInformation("Auth-Key de abuse.ch {Action}", string.IsNullOrWhiteSpace(apiKey) ? "eliminada" : "actualizada");
+        Changed?.Invoke(Current);
+    }
+
+    /// <summary>Guarda (o borra, si está vacío) un secreto cifrado con DPAPI. Devuelve el valor en claro para la caché.</summary>
+    private static string? SaveSecret(string path, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            File.Delete(path);
+            return null;
+        }
+        string trimmed = value.Trim();
+        SecretProtector.SaveToFile(path, Encoding.UTF8.GetBytes(trimmed));
+        return trimmed;
+    }
+
+    private static string? LoadSecret(string path)
+    {
+        byte[]? plain = SecretProtector.LoadFromFile(path);
         return plain is null ? null : Encoding.UTF8.GetString(plain);
     }
 
@@ -122,7 +141,8 @@ public sealed class SettingsStore
     private void Save(FragGuardSettings settings)
     {
         Directory.CreateDirectory(_paths.DataRoot);
-        settings.HasVirusTotalKey = false; // no se persiste: se calcula al vuelo
+        settings.HasVirusTotalKey = false; // no se persisten: se calculan al vuelo
+        settings.HasAbuseChKey = false;
         string tmp = _paths.SettingsPath + ".tmp";
         File.WriteAllBytes(tmp, JsonSerializer.SerializeToUtf8Bytes(settings, FragGuardJsonContext.Indented.FragGuardSettings));
         File.Move(tmp, _paths.SettingsPath, overwrite: true); // escritura atómica

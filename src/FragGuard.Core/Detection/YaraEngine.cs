@@ -56,19 +56,29 @@ public sealed class YaraEngine : IYaraEngine
     //  Carga / compilación de reglas
     // =====================================================================
 
-    public void LoadRules(string rulesDirectory)
+    public void LoadRules(params string[] rulesDirectories)
     {
-        if (!Directory.Exists(rulesDirectory))
+        // Archivo por NOMBRE: el de una carpeta posterior (reglas actualizadas) sustituye al de serie.
+        var byName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var origin = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < rulesDirectories.Length; i++)
         {
-            _logger.LogWarning("Carpeta de reglas YARA no encontrada: {Dir}", rulesDirectory);
-            SwapRules(IntPtr.Zero, 0, "none");
-            return;
+            string dir = rulesDirectories[i];
+            if (!Directory.Exists(dir))
+            {
+                if (i == 0)
+                    _logger.LogWarning("Carpeta de reglas YARA no encontrada: {Dir}", dir);
+                continue;
+            }
+            foreach (var f in Directory.EnumerateFiles(dir, "*.*", SearchOption.AllDirectories)
+                         .Where(f => f.EndsWith(".yar", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yara", StringComparison.OrdinalIgnoreCase)))
+            {
+                byName[Path.GetFileName(f)] = f;
+                origin[f] = i;
+            }
         }
 
-        var files = Directory.EnumerateFiles(rulesDirectory, "*.*", SearchOption.AllDirectories)
-            .Where(f => f.EndsWith(".yar", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yara", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var files = byName.Values.OrderBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase).ToList();
 
         IntPtr compiled;
         int count;
@@ -76,7 +86,18 @@ public sealed class YaraEngine : IYaraEngine
 
         lock (CompileLock)
         {
-            (compiled, count) = CompileValidRules(files, valid);
+            try
+            {
+                (compiled, count) = CompileValidRules(files, valid);
+            }
+            catch (CompilationException ex) when (rulesDirectories.Length > 1)
+            {
+                // Cada archivo compila por separado pero juntos no (p. ej. una regla descargada repite el nombre
+                // de otra de serie): volvemos a las reglas de serie para no quedarnos sin protección.
+                _logger.LogError("Las reglas actualizadas chocan con las de serie ({Errors}); se usan solo las de serie", string.Join(" | ", ex.Errors));
+                valid.Clear();
+                (compiled, count) = CompileValidRules(files.Where(f => origin[f] == 0).ToList(), valid);
+            }
         }
 
         SwapRules(compiled, count, ComputeVersion(valid));

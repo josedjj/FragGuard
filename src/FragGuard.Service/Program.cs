@@ -64,6 +64,7 @@ try
         sp.GetRequiredService<FragGuard.Core.Quarantine.QuarantineManager>(), sp.GetRequiredService<SettingsStore>(),
         sp.GetRequiredService<GameModeService>(), sp.GetRequiredService<UserFolderRegistry>(),
         sp.GetRequiredService<FragGuard.Core.Games.GameLibrary>(),
+        sp.GetRequiredService<FragGuard.Service.Updates.RulesUpdateService>(),
         sp.GetRequiredService<ILogger<RequestDispatcher>>())
     {
         RequireAdminForSensitiveOperations = builder.Configuration.GetValue("FragGuard:RequireAdminForSensitiveOperations", true)
@@ -75,6 +76,7 @@ try
     AddSingletonHostedService<GameModeService>(builder.Services);
     AddSingletonHostedService<RealtimeProtectionService>(builder.Services);
     builder.Services.AddHostedService<ScheduledScanService>();
+    AddSingletonHostedService<FragGuard.Service.Updates.RulesUpdateService>(builder.Services);
     builder.Services.AddHostedService<PipeServer>();
 
     // Si un servicio en segundo plano falla de forma inesperada, lo registramos pero NO paramos el host.

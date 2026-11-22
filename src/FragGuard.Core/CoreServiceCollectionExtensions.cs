@@ -39,6 +39,16 @@ public static class CoreServiceCollectionExtensions
             () => sp.GetRequiredService<SettingsStore>().GetVirusTotalKey(),
             sp.GetRequiredService<ILogger<VirusTotalClient>>()));
 
+        services.AddSingleton(sp => new AbuseChClient(
+            new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5), AutomaticDecompression = DecompressionMethods.All }),
+            () => sp.GetRequiredService<SettingsStore>().GetAbuseChKey(),
+            sp.GetRequiredService<ILogger<AbuseChClient>>()));
+
+        services.AddSingleton(sp => new Updates.RulesChannel(
+            new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5), AutomaticDecompression = DecompressionMethods.All }),
+            sp.GetRequiredService<FragGuardPaths>(),
+            sp.GetRequiredService<ILogger<Updates.RulesChannel>>()));
+
         services.AddSingleton(sp => new QuarantineVault(sp.GetRequiredService<FragGuardPaths>().QuarantineKeyPath));
         services.AddSingleton<QuarantineManager>();
 
@@ -94,6 +104,6 @@ public sealed class EngineBootstrapper
 
         _db.Initialize();
         _history.MarkInterrupted();
-        _yara.LoadRules(_paths.RulesDirectory);
+        _yara.LoadRules(_paths.RulesDirectory, _paths.UpdatedRulesDirectory);
     }
 }

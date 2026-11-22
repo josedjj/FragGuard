@@ -14,7 +14,11 @@ public enum DetectionSource
 {
     Yara = 0,
     VirusTotal = 1,
-    Heuristic = 2
+    Heuristic = 2,
+    /// <summary>Reputación externa: MalwareBazaar (hash) o URLhaus (URL de descarga).</summary>
+    Reputation = 3,
+    /// <summary>Regla de comportamiento (proceso en ejecución, línea de comandos, ransomware...).</summary>
+    Behavior = 4
 }
 
 /// <summary>Veredicto final sobre un archivo.</summary>

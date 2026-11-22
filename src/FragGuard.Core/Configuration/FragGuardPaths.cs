@@ -23,6 +23,13 @@ public sealed class FragGuardPaths
     public string QuarantineDirectory => Path.Combine(DataRoot, "quarantine");
     public string QuarantineKeyPath => Path.Combine(DataRoot, "quarantine.key");
     public string VirusTotalKeyPath => Path.Combine(DataRoot, "vt.key");
+    public string AbuseChKeyPath => Path.Combine(DataRoot, "abusech.key");
+
+    /// <summary>Reglas YARA descargadas del canal firmado (se suman a las que vienen con el programa).</summary>
+    public string UpdatedRulesDirectory => Path.Combine(DataRoot, "rules-updates");
+
+    /// <summary>Copias de seguridad de entradas de inicio desactivadas por el usuario (para poder restaurarlas).</summary>
+    public string DisabledAutorunsDirectory => Path.Combine(DataRoot, "disabled-autoruns");
     public string LogsDirectory => Path.Combine(DataRoot, "logs");
 
     public void EnsureCreated()

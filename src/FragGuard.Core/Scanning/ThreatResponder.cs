@@ -41,7 +41,9 @@ public sealed class ThreatResponder
             Verdict = result.Verdict,
             Threats = result.Threats.ToList(),
             DetectedUtc = DateTime.UtcNow,
-            Action = ThreatAction.Warned
+            Action = ThreatAction.Warned,
+            SourceUrl = result.SourceUrl,
+            Signer = result.Signer
         };
 
         // Solo lo MALICIOSO va a cuarentena automática. Lo sospechoso (heurística, 1-2 motores de VT) se avisa.
