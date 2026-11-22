@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Contratos compartidos entre Service y UI: sin dependencias externas para que sea ligero -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>FragGuard.Shared</RootNamespace>
+  </PropertyGroup>
+
+</Project>

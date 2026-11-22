@@ -1,0 +1,104 @@
+<UserControl x:Class="FragGuard.UI.Views.QuarantineView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:FragGuard.UI.ViewModels"
+             xmlns:models="clr-namespace:FragGuard.Shared.Models;assembly=FragGuard.Shared"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:QuarantineViewModel}"
+             Style="{StaticResource PageRoot}">
+    <UserControl.RenderTransform>
+        <TranslateTransform />
+    </UserControl.RenderTransform>
+
+    <Grid Margin="32,4,32,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <DockPanel>
+            <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Command="{Binding ReloadCommand}" VerticalAlignment="Top" ToolTip="Actualizar">
+                <Path Data="{StaticResource IconRefresh}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Width="16" Height="16" Stretch="Uniform" />
+            </Button>
+            <StackPanel>
+                <TextBlock Text="Cuarentena" Style="{StaticResource H1}" />
+                <TextBlock Text="Archivos aislados y cifrados (AES-256). No se pueden ejecutar mientras estén aquí."
+                           Style="{StaticResource Dim}" Margin="0,4,0,16" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Aviso: restaurar/eliminar requiere administrador -->
+        <Border Grid.Row="1" CornerRadius="12" Padding="16,12" Margin="0,0,0,16" Background="{StaticResource WarnSoftBrush}"
+                BorderBrush="{StaticResource WarnBrush}" BorderThickness="1"
+                Visibility="{Binding IsElevated, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource WarnButton}" Content="Reabrir como administrador" Command="{Binding ElevateNowCommand}" />
+                <Path Data="{StaticResource IconAdmin}" Fill="{StaticResource WarnBrush}" Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center" />
+                <TextBlock Style="{StaticResource Body}" VerticalAlignment="Center" Margin="12,0,16,0"
+                           Text="Restaurar o eliminar archivos requiere permisos de administrador (así un malware no puede sacarse a sí mismo de la cuarentena)." />
+            </DockPanel>
+        </Border>
+
+        <!-- Estado vacío -->
+        <StackPanel Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}">
+            <Path Data="{StaticResource IconLock}" Fill="{StaticResource Surface3Brush}" Width="64" Height="64" Stretch="Uniform" />
+            <TextBlock Text="La cuarentena está vacía" Style="{StaticResource H2}" HorizontalAlignment="Center" Margin="0,16,0,4" />
+            <TextBlock Text="Nada sospechoso por aquí. ¡Buena partida!" Style="{StaticResource Dim}" HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <ListBox Grid.Row="2" Style="{StaticResource CleanList}" ItemsSource="{Binding Items}"
+                 Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="{x:Type models:QuarantineItemDto}">
+                    <Border Style="{StaticResource Card}" Padding="16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="44" Height="44" CornerRadius="11" Background="{StaticResource Accent2SoftBrush}" VerticalAlignment="Top">
+                                <Path Data="{StaticResource IconLock}" Fill="{StaticResource Accent2Brush}" Width="20" Height="20" Stretch="Uniform" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="16,0,16,0">
+                                <TextBlock Text="{Binding OriginalPath, Converter={StaticResource FileName}}" Style="{StaticResource H2}" FontSize="15.5" />
+                                <TextBlock Text="{Binding OriginalPath}" FontFamily="{StaticResource MonoFont}" FontSize="11" Foreground="{StaticResource TextFaintBrush}"
+                                           TextTrimming="CharacterEllipsis" Margin="0,3,0,8" ToolTip="{Binding OriginalPath}" />
+                                <WrapPanel>
+                                    <Border Style="{StaticResource Chip}" Background="{StaticResource Accent2SoftBrush}" Margin="0,0,8,0">
+                                        <TextBlock Text="{Binding ThreatName}" Foreground="{StaticResource Accent2Brush}" FontSize="11.5" />
+                                    </Border>
+                                    <TextBlock Text="{Binding QuarantinedUtc, Converter={StaticResource LocalTime}}" Style="{StaticResource Dim}" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                    <TextBlock Text="{Binding SizeBytes, Converter={StaticResource Bytes}}" Style="{StaticResource Dim}" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                    <Border Style="{StaticResource Chip}" Background="{StaticResource WarnSoftBrush}"
+                                            Visibility="{Binding PendingReboot, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="Se eliminará al reiniciar" Foreground="{StaticResource WarnBrush}" FontSize="11.5" />
+                                    </Border>
+                                </WrapPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource NeonButton}" Padding="12,7"
+                                        Command="{Binding DataContext.RestoreCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="{StaticResource IconRestore}" Fill="{StaticResource AccentBrush}" Width="13" Height="13" Stretch="Uniform" />
+                                        <TextBlock Text="Restaurar" Margin="6,0,0,0" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource DangerButton}" Padding="12,7" Margin="8,0,0,0"
+                                        Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="{StaticResource IconTrash}" Fill="{StaticResource DangerBrush}" Width="13" Height="13" Stretch="Uniform" />
+                                        <TextBlock Text="Eliminar" Margin="6,0,0,0" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</UserControl>

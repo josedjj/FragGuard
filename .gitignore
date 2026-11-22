@@ -1,0 +1,13 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+
+## Publicaciones generadas por los scripts
+artifacts/
+
+## Datos del servicio en modo desarrollo (dotnet run)
+src/FragGuard.Service/devdata/

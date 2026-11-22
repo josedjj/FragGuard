@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8BCB3623-0F3B-42A7-B681-E1A0F84E0BA9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FragGuard.Shared", "src\FragGuard.Shared\FragGuard.Shared.csproj", "{92C383C7-FD06-4078-B84D-BF64730FB7AB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FragGuard.Core", "src\FragGuard.Core\FragGuard.Core.csproj", "{08740DEC-0F1F-4E3B-B3DD-DD43D02139C5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FragGuard.Service", "src\FragGuard.Service\FragGuard.Service.csproj", "{44790F8B-4F1D-4DB0-84B4-D3A0440DF5F1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FragGuard.UI", "src\FragGuard.UI\FragGuard.UI.csproj", "{103E0AEB-B910-4F2E-A515-A08FBA6E19EB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{E7D7EEFC-E5C5-4E49-A786-D0777D7FB10E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FragGuard.Core.Tests", "tests\FragGuard.Core.Tests\FragGuard.Core.Tests.csproj", "{050B6639-5A20-411E-BEBC-420E4EFF1CAF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{92C383C7-FD06-4078-B84D-BF64730FB7AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92C383C7-FD06-4078-B84D-BF64730FB7AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92C383C7-FD06-4078-B84D-BF64730FB7AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92C383C7-FD06-4078-B84D-BF64730FB7AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08740DEC-0F1F-4E3B-B3DD-DD43D02139C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08740DEC-0F1F-4E3B-B3DD-DD43D02139C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08740DEC-0F1F-4E3B-B3DD-DD43D02139C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08740DEC-0F1F-4E3B-B3DD-DD43D02139C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{44790F8B-4F1D-4DB0-84B4-D3A0440DF5F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44790F8B-4F1D-4DB0-84B4-D3A0440DF5F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44790F8B-4F1D-4DB0-84B4-D3A0440DF5F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44790F8B-4F1D-4DB0-84B4-D3A0440DF5F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{103E0AEB-B910-4F2E-A515-A08FBA6E19EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{103E0AEB-B910-4F2E-A515-A08FBA6E19EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{103E0AEB-B910-4F2E-A515-A08FBA6E19EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{103E0AEB-B910-4F2E-A515-A08FBA6E19EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{050B6639-5A20-411E-BEBC-420E4EFF1CAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{050B6639-5A20-411E-BEBC-420E4EFF1CAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{050B6639-5A20-411E-BEBC-420E4EFF1CAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{050B6639-5A20-411E-BEBC-420E4EFF1CAF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{92C383C7-FD06-4078-B84D-BF64730FB7AB} = {8BCB3623-0F3B-42A7-B681-E1A0F84E0BA9}
+		{08740DEC-0F1F-4E3B-B3DD-DD43D02139C5} = {8BCB3623-0F3B-42A7-B681-E1A0F84E0BA9}
+		{44790F8B-4F1D-4DB0-84B4-D3A0440DF5F1} = {8BCB3623-0F3B-42A7-B681-E1A0F84E0BA9}
+		{103E0AEB-B910-4F2E-A515-A08FBA6E19EB} = {8BCB3623-0F3B-42A7-B681-E1A0F84E0BA9}
+		{050B6639-5A20-411E-BEBC-420E4EFF1CAF} = {E7D7EEFC-E5C5-4E49-A786-D0777D7FB10E}
+	EndGlobalSection
+EndGlobal

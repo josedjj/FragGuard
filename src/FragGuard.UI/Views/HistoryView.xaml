@@ -1,0 +1,105 @@
+<UserControl x:Class="FragGuard.UI.Views.HistoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:FragGuard.UI.ViewModels"
+             xmlns:models="clr-namespace:FragGuard.Shared.Models;assembly=FragGuard.Shared"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:HistoryViewModel}"
+             Style="{StaticResource PageRoot}">
+    <UserControl.RenderTransform>
+        <TranslateTransform />
+    </UserControl.RenderTransform>
+
+    <Grid Margin="32,4,32,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="2*" />
+        </Grid.ColumnDefinitions>
+
+        <DockPanel Grid.ColumnSpan="3">
+            <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Command="{Binding ReloadCommand}" VerticalAlignment="Top" ToolTip="Actualizar">
+                <Path Data="{StaticResource IconRefresh}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Width="16" Height="16" Stretch="Uniform" />
+            </Button>
+            <StackPanel>
+                <TextBlock Text="Historial" Style="{StaticResource H1}" />
+                <TextBlock Text="Detecciones (tiempo real y escaneos) y escaneos realizados." Style="{StaticResource Dim}" Margin="0,4,0,16" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- ===================== Detecciones ===================== -->
+        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="18">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Detecciones" Style="{StaticResource H2}" Margin="0,0,0,12" />
+                <TextBlock DockPanel.Dock="Top" Text="Ninguna detección registrada todavía." Style="{StaticResource Dim}"
+                           Visibility="{Binding NoDetections, Converter={StaticResource BoolToVis}}" />
+                <ListBox Style="{StaticResource CleanList}" ItemsSource="{Binding Detections}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type models:DetectionDto}">
+                            <Border Background="{StaticResource Surface2Brush}" CornerRadius="10" Padding="14,11">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Width="9" Height="9" VerticalAlignment="Top" Margin="0,5,12,0"
+                                             Fill="{Binding Verdict, Converter={StaticResource SeverityBrush}}" />
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding FilePath, Converter={StaticResource FileName}}" FontWeight="SemiBold" FontSize="13.5"
+                                                   Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" ToolTip="{Binding FilePath}" />
+                                        <TextBlock Text="{Binding PrimaryThreatName}" Style="{StaticResource Dim}" FontSize="12" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                            <TextBlock Text="{Binding Verdict, Converter={StaticResource EnumText}}" FontSize="11.5"
+                                                       Foreground="{Binding Verdict, Converter={StaticResource SeverityBrush}}" />
+                                            <TextBlock Text=" · " Style="{StaticResource Dim}" FontSize="11.5" />
+                                            <TextBlock Text="{Binding Action, Converter={StaticResource EnumText}}" Style="{StaticResource Dim}" FontSize="11.5" />
+                                            <TextBlock Text=" · " Style="{StaticResource Dim}" FontSize="11.5" />
+                                            <TextBlock Text="{Binding ScanKind, Converter={StaticResource EnumText}}" Style="{StaticResource Dim}" FontSize="11.5" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="{Binding DetectedUtc, Converter={StaticResource LocalTime}}" Style="{StaticResource Dim}"
+                                               FontSize="11.5" Margin="12,0,0,0" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- ===================== Escaneos ===================== -->
+        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource Card}" Padding="18">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Escaneos" Style="{StaticResource H2}" Margin="0,0,0,12" />
+                <TextBlock DockPanel.Dock="Top" Text="Aún no se ha hecho ningún escaneo." Style="{StaticResource Dim}"
+                           Visibility="{Binding NoScans, Converter={StaticResource BoolToVis}}" />
+                <ListBox Style="{StaticResource CleanList}" ItemsSource="{Binding Scans}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type models:ScanSummaryDto}">
+                            <Border Background="{StaticResource Surface2Brush}" CornerRadius="10" Padding="14,11">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding State, Converter={StaticResource EnumText}}" FontSize="11.5"
+                                                   Foreground="{Binding State, Converter={StaticResource SeverityBrush}}" />
+                                        <TextBlock Text="{Binding Kind, Converter={StaticResource EnumText}}" FontWeight="SemiBold" FontSize="13.5" Foreground="{StaticResource TextBrush}" />
+                                    </DockPanel>
+                                    <TextBlock Text="{Binding StartedUtc, Converter={StaticResource LocalTime}}" Style="{StaticResource Dim}" FontSize="11.5" Margin="0,2,0,6" />
+                                    <TextBlock Style="{StaticResource Dim}" FontSize="12">
+                                        <Run Text="{Binding FilesScanned, Mode=OneWay, StringFormat={}{0:N0}}" Foreground="{StaticResource TextBrush}" /><Run Text=" archivos · " />
+                                        <Run Text="{Binding ThreatsFound, Mode=OneWay}" Foreground="{StaticResource Accent2Brush}" /><Run Text=" amenazas" />
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

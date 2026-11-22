@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Motor de detección: hashing, YARA, VirusTotal, comprimidos, heurística, cuarentena y SQLite -->
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>FragGuard.Core</RootNamespace>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.100" />
+    <PackageReference Include="dnYara" Version="2.1.0" />
+    <!-- El paquete trae libyara.dll (nativa x64) dentro de lib/, lo que confunde a MSBuild (MSB3246).
+         Excluimos sus assets y copiamos la DLL nativa nosotros (ver ItemGroup de abajo). -->
+    <PackageReference Include="dnYara.NativePack" Version="2.1.0.3" ExcludeAssets="all" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+    <PackageReference Include="SharpCompress" Version="0.50.11" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <PackageReference Include="System.Threading.RateLimiting" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FragGuard.Shared\FragGuard.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="FragGuard.Core.Tests" />
+  </ItemGroup>
+
+  <!-- libyara nativa: se copia a la salida de Core y, de forma transitiva, a la del servicio y los tests -->
+  <ItemGroup>
+    <None Include="$(PkgdnYara_NativePack)\lib\netstandard1.1\libyara.dll" Link="libyara.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+  <!-- Reglas YARA de la raíz de la solución: se copian a la carpeta "rules" junto al ejecutable -->
+  <ItemGroup>
+    <None Include="..\..\rules\**\*.yar" Link="rules\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

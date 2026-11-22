@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <!-- Servicio de Windows de FragGuard (corre como LocalSystem) -->
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>FragGuard.Service</RootNamespace>
+    <AssemblyName>FragGuard.Service</AssemblyName>
+    <UserSecretsId>dotnet-FragGuard.Service-f43b32aa-3cdc-4e28-afbc-da3870777d7e</UserSecretsId>
+
+    <!-- ===== Ajustes de memoria (objetivo: ~50 MB en reposo) ===== -->
+    <!-- GC de estación de trabajo: un solo heap pequeño en vez de uno por núcleo (Server GC). -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <!-- Sin GC concurrente: evita el hilo de GC en segundo plano y su memoria extra. -->
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <!-- Prioriza memoria compacta sobre velocidad de asignación (0-9). -->
+    <GCConserveMemory>5</GCConserveMemory>
+    <!-- Sin datos de cultura ICU: menos memoria y arranque más rápido (los textos son fijos en español). -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Solo se copian los recursos satélite en español (menos archivos en la instalación). -->
+    <SatelliteResourceLanguages>es</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+  </ItemGroup>
+
+  <!-- La configuración de desarrollo nunca debe llegar a la instalación -->
+  <ItemGroup>
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FragGuard.Core\FragGuard.Core.csproj" />
+    <ProjectReference Include="..\FragGuard.Shared\FragGuard.Shared.csproj" />
+  </ItemGroup>
+</Project>

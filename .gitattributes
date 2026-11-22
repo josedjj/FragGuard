@@ -1,0 +1,10 @@
+# Finales de línea normalizados en el repositorio; en Windows se usan CRLF al hacer checkout.
+* text=auto
+
+# Scripts de PowerShell y archivos de solución de Visual Studio: siempre CRLF.
+*.ps1 text eol=crlf
+*.sln text eol=crlf
+
+# Binarios
+*.ico binary
+*.png binary
