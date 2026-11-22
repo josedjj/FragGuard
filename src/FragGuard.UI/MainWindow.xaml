@@ -104,6 +104,9 @@
                         <RadioButton Style="{StaticResource NavButton}" Content="Ajustes" Tag="{StaticResource IconCog}"
                                      Command="{Binding NavigateCommand}" CommandParameter="Settings"
                                      IsChecked="{Binding CurrentPageKey, Mode=OneWay, Converter={StaticResource Equals}, ConverterParameter=Settings}" />
+                        <RadioButton Style="{StaticResource NavButton}" Content="Juegos" Tag="{StaticResource IconGamepad}"
+                                     Command="{Binding NavigateCommand}" CommandParameter="Games"
+                                     IsChecked="{Binding CurrentPageKey, Mode=OneWay, Converter={StaticResource Equals}, ConverterParameter=Games}" />
                     </StackPanel>
                 </DockPanel>
             </Border>

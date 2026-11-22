@@ -34,6 +34,9 @@ namespace FragGuard.Shared.Ipc;
 [JsonSerializable(typeof(KillProcessRequest))]
 [JsonSerializable(typeof(OperationResult))]
 [JsonSerializable(typeof(List<ThreatInfo>))]
+[JsonSerializable(typeof(GameDto))]
+[JsonSerializable(typeof(List<GameDto>))]
+[JsonSerializable(typeof(ListGamesRequest))]
 public partial class FragGuardJsonContext : JsonSerializerContext
 {
     private static readonly Lazy<FragGuardJsonContext> IndentedLazy = new(() => new FragGuardJsonContext(new JsonSerializerOptions

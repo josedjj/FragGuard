@@ -8,6 +8,7 @@ Antivirus **ligero para gamers** en Windows 10/11 (MVP v0.1). Su ventaja diferen
 - **Modo juego automático**: pausa escaneos programados, silencia avisos no críticos y baja la prioridad de CPU y E/S.
 - Reglas **YARA** contra *infostealers* de Discord, Steam y navegadores, y avisos por nombres de **cheats / trainers / "free skins"**.
 - Consulta de hashes en **VirusTotal**. Nunca sube archivos y la clave la pone el usuario.
+- Página **Juegos**: juegos instalados (Steam, Epic, Riot, EA, Ubisoft, GOG, Battle.net, Rockstar), última vez jugado, tamaño, **Jugar** y **Desinstalar sin dejar restos**.
 - Sin drivers ni hooks de kernel, sin inyección en procesos: **compatible con Vanguard, Easy Anti-Cheat y BattlEye**.
 
 > ⚠️ FragGuard es una capa **complementaria**. Windows Defender sigue activo: para sustituirlo en el Centro de seguridad de Windows hace falta un driver ELAM firmado y pertenecer al programa MVI de Microsoft.
@@ -203,6 +204,9 @@ La clave se guarda cifrada con DPAPI en `%ProgramData%\FragGuard\vt.key` y nunca
 | Modo juego | Juegos de la lista, **hijos** de lanzadores (Steam abierto no basta) o pantalla completa informada por la UI. El servicio usa `PROCESS_MODE_BACKGROUND_BEGIN` (CPU, E/S y memoria bajas). |
 | Anti-cheat | Solo APIs de lectura en modo usuario (Toolhelp, `QueryFullProcessImageName`, `SHQueryUserNotificationState`). Nada de drivers, hooks ni inyección. |
 | Datos | SQLite (WAL) con Dapper; EF Core añadiría 15-25 MB de RAM. JSON con *source generators* para evitar reflexión. |
+| Juegos: detección | El **servicio** (solo lectura) combina los manifiestos de Steam (`libraryfolders.vdf` + `appmanifest_*.acf`), los de Epic (`*.item`) y las claves *Uninstall* del registro (también las de cada usuario). "Última vez jugado": **Steam** usa su propio `LastPlayed` (exacto). Las demás plataformas usan **Prefetch** de Windows (requiere SYSTEM), solo con ejecutables de nombre distintivo, porque Prefetch guarda nombres y no rutas, y un `launcher.exe` de otra app daría fechas falsas. |
+| Juegos: acciones | **Jugar, desinstalar y borrar restos los hace la UI con los permisos del usuario**, nunca el servicio SYSTEM. Un comando "borrar carpeta" en el servicio sería un vector de escalada de privilegios. La desinstalación usa siempre el **desinstalador oficial** (`steam://uninstall`, `UninstallString` de Riot/EA/Ubisoft...). |
+| Juegos: restos | Solo carpetas con el nombre **exacto** del juego (o de su carpeta de instalación), en AppData, LocalLow, Documentos, My Games, Partidas guardadas y ProgramData, hasta 2 niveles. Nunca una carpeta que contenga otro juego instalado. Lo que puede contener partidas viene **desmarcado** y todo va a la **Papelera**. Lo cubren `LeftoverFinderTests`. |
 
 ## 9. Consumo medido (MVP, equipo de desarrollo)
 

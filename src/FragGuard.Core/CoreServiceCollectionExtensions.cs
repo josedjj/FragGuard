@@ -46,6 +46,7 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<FileScanner>();
         services.AddSingleton<ThreatResponder>();
         services.AddSingleton<ScanRunner>();
+        services.AddSingleton<Games.GameLibrary>();
         services.AddSingleton<EngineBootstrapper>();
         return services;
     }

@@ -26,7 +26,8 @@ public sealed partial class MainViewModel : ObservableObject
         Quarantine = new QuarantineViewModel(client);
         History = new HistoryViewModel(client);
         Settings = new SettingsViewModel(client, s => CurrentSettings = s);
-        _pages = new() { ["Dashboard"] = Dashboard, ["Scan"] = Scan, ["Quarantine"] = Quarantine, ["History"] = History, ["Settings"] = Settings };
+        Games = new GamesViewModel(client);
+        _pages = new() { ["Dashboard"] = Dashboard, ["Scan"] = Scan, ["Quarantine"] = Quarantine, ["History"] = History, ["Settings"] = Settings, ["Games"] = Games };
         _currentPage = Dashboard;
 
         // Eventos del servicio (llegan en hilos de fondo → pasamos al hilo de UI)
@@ -46,6 +47,7 @@ public sealed partial class MainViewModel : ObservableObject
     public QuarantineViewModel Quarantine { get; }
     public HistoryViewModel History { get; }
     public SettingsViewModel Settings { get; }
+    public GamesViewModel Games { get; }
 
     public bool IsElevated => Elevation.IsElevated;
 

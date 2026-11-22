@@ -265,6 +265,14 @@ public sealed class ServiceClient : IDisposable
         RequestAsync(MessageTypes.RegisterUserFolders, new RegisterUserFoldersRequest { DownloadsFolder = downloads, DesktopFolder = desktop },
             Json.RegisterUserFoldersRequest, Json.OperationResult);
 
+    /// <summary>Lista de juegos instalados. Escanear las bibliotecas puede tardar unos segundos la primera vez.</summary>
+    public async Task<List<GameDto>> ListGamesAsync(bool forceRefresh)
+    {
+        var response = await SendAsync(PipeProtocol.Create(MessageTypes.ListGames, new ListGamesRequest { ForceRefresh = forceRefresh }, Json.ListGamesRequest),
+            TimeSpan.FromSeconds(90)).ConfigureAwait(false);
+        return response.GetPayload(Json.ListGameDto) ?? new List<GameDto>();
+    }
+
     public async Task KillProcessAsync(int pid) =>
         EnsureOk(await RequestAsync(MessageTypes.KillProcess, new KillProcessRequest { ProcessId = pid }, Json.KillProcessRequest, Json.OperationResult).ConfigureAwait(false));
 

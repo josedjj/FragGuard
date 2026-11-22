@@ -29,12 +29,14 @@ public sealed class RequestDispatcher
     private readonly SettingsStore _settings;
     private readonly GameModeService _gameMode;
     private readonly UserFolderRegistry _userFolders;
+    private readonly FragGuard.Core.Games.GameLibrary _games;
     private readonly ILogger<RequestDispatcher> _logger;
 
     public RequestDispatcher(StatusProvider status, ScanCoordinator scans, ScanHistoryRepository history, DetectionRepository detections,
         QuarantineManager quarantine, SettingsStore settings, GameModeService gameMode, UserFolderRegistry userFolders,
-        ILogger<RequestDispatcher> logger)
+        FragGuard.Core.Games.GameLibrary games, ILogger<RequestDispatcher> logger)
     {
+        _games = games;
         _status = status;
         _scans = scans;
         _history = history;
@@ -144,6 +146,13 @@ public sealed class RequestDispatcher
                     _userFolders.Register(req.DownloadsFolder, req.DesktopFolder);
                     return Reply(id, OperationResult.Ok(), Json.OperationResult);
                 }
+                case MessageTypes.ListGames:
+                {
+                    var req = request.GetPayload(Json.ListGamesRequest) ?? new ListGamesRequest();
+                    var games = await _games.GetGamesAsync(req.ForceRefresh, ct).ConfigureAwait(false);
+                    return Reply(id, games, Json.ListGameDto);
+                }
+
                 case MessageTypes.KillProcess:
                 {
                     var req = Require(request, Json.KillProcessRequest);

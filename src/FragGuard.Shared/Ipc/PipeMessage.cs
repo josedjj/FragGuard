@@ -38,6 +38,8 @@ public static class MessageTypes
     /// <summary>La UI envía las carpetas conocidas del usuario (Descargas, Escritorio) resueltas en su sesión.</summary>
     public const string RegisterUserFolders = "RegisterUserFolders";
     public const string KillProcess = "KillProcess";
+    /// <summary>Lista de juegos instalados (solo lectura).</summary>
+    public const string ListGames = "ListGames";
 
     // ----- Respuesta -----
     public const string Response = "Response";

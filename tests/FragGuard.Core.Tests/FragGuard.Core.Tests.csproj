@@ -4,6 +4,8 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- Necesario para cargar el ensamblado de la UI (tests de la limpieza de restos de juegos) -->
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,10 +19,14 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <!-- UseWPF quita estos usings implícitos; los tests los necesitan -->
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\FragGuard.Core\FragGuard.Core.csproj" />
+    <ProjectReference Include="..\..\src\FragGuard.UI\FragGuard.UI.csproj" />
   </ItemGroup>
 
 </Project>

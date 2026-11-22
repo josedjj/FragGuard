@@ -63,6 +63,7 @@ try
         sp.GetRequiredService<FragGuard.Core.Data.ScanHistoryRepository>(), sp.GetRequiredService<FragGuard.Core.Data.DetectionRepository>(),
         sp.GetRequiredService<FragGuard.Core.Quarantine.QuarantineManager>(), sp.GetRequiredService<SettingsStore>(),
         sp.GetRequiredService<GameModeService>(), sp.GetRequiredService<UserFolderRegistry>(),
+        sp.GetRequiredService<FragGuard.Core.Games.GameLibrary>(),
         sp.GetRequiredService<ILogger<RequestDispatcher>>())
     {
         RequireAdminForSensitiveOperations = builder.Configuration.GetValue("FragGuard:RequireAdminForSensitiveOperations", true)

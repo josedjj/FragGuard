@@ -108,6 +108,34 @@ public sealed class SeverityBrushConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
 }
 
+/// <summary>Color de marca de cada plataforma de juegos (para la etiqueta y la inicial).</summary>
+public sealed class LauncherBrushConverter : IValueConverter
+{
+    private static readonly Dictionary<string, Brush> Brushes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Steam"] = Make("#66C0F4"),
+        ["Epic Games"] = Make("#E6EDF7"),
+        ["Riot Games"] = Make("#FF4655"),
+        ["EA"] = Make("#FF5A5F"),
+        ["Ubisoft"] = Make("#3D8BFF"),
+        ["GOG"] = Make("#B26BFF"),
+        ["Battle.net"] = Make("#148EFF"),
+        ["Rockstar"] = Make("#FCAF17")
+    };
+    private static readonly Brush Default = Make("#00E5FF");
+
+    private static Brush Make(string hex)
+    {
+        var b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
+        b.Freeze();
+        return b;
+    }
+
+    public object Convert(object? value, Type targetType, object parameter, CultureInfo culture) =>
+        value is string s && Brushes.TryGetValue(s, out var b) ? b : Default;
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
 /// <summary>Formatos de texto reutilizables.</summary>
 public static class Format
 {
