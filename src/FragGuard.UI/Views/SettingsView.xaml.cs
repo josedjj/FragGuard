@@ -46,13 +46,24 @@ public partial class SettingsView : UserControl
             vm.PropertyChanged += OnVmPropertyChanged;
     }
 
-    // Tras guardar (o borrar) la clave, vaciamos el campo.
+    private void AbuseKeyBox_PasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (Vm is { } vm)
+            vm.AbuseChKeyInput = AbuseKeyBox.Password;
+    }
+
+    // Tras guardar (o borrar) una clave, vaciamos su campo.
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(SettingsViewModel.HasVirusTotalKey))
         {
             VtKeyBox.Clear();
             if (Vm is { } vm) vm.VirusTotalKeyInput = "";
+        }
+        else if (e.PropertyName == nameof(SettingsViewModel.HasAbuseChKey))
+        {
+            AbuseKeyBox.Clear();
+            if (Vm is { } vm) vm.AbuseChKeyInput = "";
         }
     }
 }

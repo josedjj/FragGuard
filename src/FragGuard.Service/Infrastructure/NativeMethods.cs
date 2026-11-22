@@ -169,6 +169,46 @@ internal static class NativeMethods
         }
     }
 
+    // ---------- Política de auditoría del sistema (sin auditpol.exe: independiente del idioma) ----------
+    internal const uint POLICY_AUDIT_EVENT_SUCCESS = 0x1, POLICY_AUDIT_EVENT_FAILURE = 0x2, POLICY_AUDIT_EVENT_NONE = 0x4;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct AUDIT_POLICY_INFORMATION
+    {
+        public Guid AuditSubCategoryGuid;
+        public uint AuditingInformation;
+        public Guid AuditCategoryGuid;
+    }
+
+    // OJO: estas funciones devuelven BOOLEAN (1 byte), no BOOL (4 bytes). Con el tipo equivocado,
+    // un fallo podía leerse como éxito (pasó de verdad: NullReferenceException al leer un puntero nulo).
+    [DllImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    private static extern bool AuditSetSystemPolicy([In] AUDIT_POLICY_INFORMATION[] policy, uint count);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    private static extern bool AuditQuerySystemPolicy([In] Guid[] subCategoryGuids, uint count, out IntPtr policy);
+
+    [DllImport("advapi32.dll")]
+    private static extern void AuditFree(IntPtr buffer);
+
+    /// <summary>Valor actual de auditoría (éxito/error) de una subcategoría, o null si no se puede leer.</summary>
+    internal static uint? QueryAuditPolicy(Guid subcategory)
+    {
+        if (!AuditQuerySystemPolicy(new[] { subcategory }, 1, out IntPtr buffer) || buffer == IntPtr.Zero)
+            return null;
+        try { return Marshal.PtrToStructure<AUDIT_POLICY_INFORMATION>(buffer).AuditingInformation; }
+        finally { AuditFree(buffer); }
+    }
+
+    /// <summary>Fija la auditoría de una subcategoría. Devuelve el código de error de Win32 (0 = correcto).</summary>
+    internal static int SetAuditPolicy(Guid subcategory, uint auditing)
+    {
+        var info = new[] { new AUDIT_POLICY_INFORMATION { AuditSubCategoryGuid = subcategory, AuditingInformation = auditing } };
+        return AuditSetSystemPolicy(info, 1) ? 0 : Marshal.GetLastWin32Error();
+    }
+
     /// <summary>Ruta completa del ejecutable de un proceso, o null si no se puede consultar (proceso protegido, ya cerrado...).</summary>
     internal static string? TryGetProcessPath(uint pid)
     {

@@ -23,6 +23,7 @@
             <local:EnumTextConverter x:Key="EnumText" />
             <local:SeverityBrushConverter x:Key="SeverityBrush" />
             <local:LauncherBrushConverter x:Key="LauncherBrush" />
+            <local:AllTrueToVisibilityConverter x:Key="AllTrueToVis" />
 
             <!-- Cada ViewModel de página se pinta con su vista (navegación por DataTemplates) -->
             <DataTemplate DataType="{x:Type vm:DashboardViewModel}"><views:DashboardView /></DataTemplate>
@@ -31,6 +32,8 @@
             <DataTemplate DataType="{x:Type vm:HistoryViewModel}"><views:HistoryView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:GamesViewModel}"><views:GamesView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ProtectionViewModel}"><views:ProtectionView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:AutorunsViewModel}"><views:AutorunsView /></DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

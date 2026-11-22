@@ -1,0 +1,177 @@
+<UserControl x:Class="FragGuard.UI.Views.ProtectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:FragGuard.UI.ViewModels"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:ProtectionViewModel}"
+             Style="{StaticResource PageRoot}">
+    <UserControl.RenderTransform>
+        <TranslateTransform />
+    </UserControl.RenderTransform>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,4,32,32">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Command="{Binding ReloadCommand}" VerticalAlignment="Top" ToolTip="Actualizar">
+                    <Path Data="{StaticResource IconRefresh}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Width="16" Height="16" Stretch="Uniform" />
+                </Button>
+                <StackPanel>
+                    <TextBlock Text="Protección" Style="{StaticResource H1}" />
+                    <TextBlock Text="Defensas activas mientras usas el PC. Todo en modo usuario: sin drivers, compatible con Vanguard, EAC y BattlEye."
+                               Style="{StaticResource Dim}" Margin="0,4,0,20" />
+                </StackPanel>
+            </DockPanel>
+
+            <!-- ===================== Módulos ===================== -->
+            <ItemsControl ItemsSource="{Binding Modules}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="3" Margin="0,0,-14,0" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:ProtectionModule}">
+                        <Border Style="{StaticResource Card}" Margin="0,0,14,14" Padding="18">
+                            <StackPanel>
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Right" CornerRadius="6" Padding="8,2" VerticalAlignment="Top">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Active}" Value="True">
+                                                        <Setter Property="Background" Value="{StaticResource OkSoftBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding StatusText}" FontSize="10.5" FontFamily="{StaticResource HeadingFont}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Active}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource OkBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Border>
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource H2}" FontSize="16" />
+                                </DockPanel>
+                                <TextBlock Text="{Binding Detail}" Style="{StaticResource Dim}" FontSize="12" Margin="0,10,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- ===================== Integridad + memoria ===================== -->
+            <Grid Margin="0,2,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="14" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Style="{StaticResource Card}" Padding="18">
+                    <StackPanel>
+                        <TextBlock Text="INTEGRIDAD DE FRAGGUARD" Style="{StaticResource Label}" />
+                        <TextBlock Text="{Binding IntegrityText}" Margin="0,8,0,0" FontSize="13" TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IntegrityOk}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="18">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource NeonButton}" Content="Escanear memoria" VerticalAlignment="Center" Command="{Binding ScanMemoryCommand}" />
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="ESCANEO DE MEMORIA" Style="{StaticResource Label}" />
+                            <TextBlock Style="{StaticResource Dim}" FontSize="12" Margin="0,8,0,0"
+                                       Text="Busca malware empaquetado en los programas abiertos. Nunca durante una partida." />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <!-- ===================== Cámara y micrófono ===================== -->
+            <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                <StackPanel>
+                    <TextBlock Text="Cámara y micrófono" Style="{StaticResource H2}" />
+                    <TextBlock Text="Qué programas los han usado según Windows. Los que no tienen firma de confianza aparecen resaltados."
+                               Style="{StaticResource Dim}" FontSize="12" Margin="0,4,0,12" />
+                    <TextBlock Text="Ningún programa ha usado la cámara o el micrófono todavía." Style="{StaticResource Dim}"
+                               Visibility="{Binding NoDeviceUsage, Converter={StaticResource BoolToVis}}" />
+                    <ItemsControl ItemsSource="{Binding DeviceUsage}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:DeviceUsageItem}">
+                                <Border CornerRadius="10" Padding="14,10" Margin="0,0,0,6">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{StaticResource Surface2Brush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsUntrusted}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource WarnSoftBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Path Width="18" Height="18" Stretch="Uniform" Margin="0,0,14,0" VerticalAlignment="Center">
+                                            <Path.Style>
+                                                <Style TargetType="Path">
+                                                    <Setter Property="Data" Value="{StaticResource IconMic}" />
+                                                    <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsCamera}" Value="True">
+                                                            <Setter Property="Data" Value="{StaticResource IconWebcam}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding InUse}" Value="True">
+                                                            <Setter Property="Fill" Value="{StaticResource Accent2Brush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Path.Style>
+                                        </Path>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock FontWeight="SemiBold" FontSize="13.5" Foreground="{StaticResource TextBrush}">
+                                                <Run Text="{Binding App, Mode=OneWay}" /><Run Text=" · " Foreground="{StaticResource TextFaintBrush}" /><Run Text="{Binding Device, Mode=OneWay}" Foreground="{StaticResource TextDimBrush}" />
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding PublisherText}" Style="{StaticResource Dim}" FontSize="11.5" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="{Binding WhenText}" FontSize="12" VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource Dim}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding InUse}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource Accent2Brush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

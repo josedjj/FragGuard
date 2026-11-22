@@ -94,6 +94,111 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- ===== Protección en ejecución ===== -->
+                    <Border Style="{StaticResource Section}">
+                        <StackPanel>
+                            <TextBlock Text="Protección en ejecución" Style="{StaticResource H2}" />
+                            <TextBlock Text="Todo funciona en modo usuario, sin drivers: compatible con Vanguard, Easy Anti-Cheat y BattlEye."
+                                       Style="{StaticResource Dim}" FontSize="12" Margin="0,4,0,4" />
+                            <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding ProcessMonitorEnabled}"
+                                      Content="Analizar cada programa al arrancar y detener comportamientos de malware" />
+                            <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding RansomwareShieldEnabled}"
+                                      Content="Escudo anti-ransomware (archivos señuelo ocultos en Documentos, Imágenes y Escritorio)" />
+                            <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding AccountProtectionEnabled}"
+                                      Content="Proteger mis cuentas de Discord y Steam (avisa si otro programa lee sus sesiones)" />
+                            <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding PrivacyMonitorEnabled}"
+                                      Content="Avisar si un programa sin firma usa la cámara o el micrófono" />
+                            <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding PersistenceMonitorEnabled}"
+                                      Content="Vigilar los programas de inicio y las exclusiones de Windows Defender" />
+                            <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding RemovableDrivesEnabled}"
+                                      Content="Analizar las memorias USB al conectarlas" />
+                            <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding DetectPup}"
+                                      Content="Avisar de programas potencialmente no deseados (adware, instaladores con extras, criptomineros)" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ===== Actualizaciones de reglas ===== -->
+                    <Border Style="{StaticResource Section}">
+                        <StackPanel>
+                            <TextBlock Text="Actualizaciones de reglas" Style="{StaticResource H2}" />
+                            <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding AutoUpdateRules}" Margin="0,12,0,0"
+                                      Content="Descargar reglas nuevas automáticamente (solo se aplican si su firma criptográfica es válida)" />
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <Button Style="{StaticResource NeonButton}" Content="Buscar actualizaciones ahora" Command="{Binding CheckRuleUpdatesCommand}" />
+                                <TextBlock Text="{Binding RulesUpdateMessage}" Style="{StaticResource Dim}" VerticalAlignment="Center" Margin="14,0,0,0" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ===== abuse.ch ===== -->
+                    <Border Style="{StaticResource Section}">
+                        <StackPanel>
+                            <TextBlock Text="abuse.ch (MalwareBazaar y URLhaus)" Style="{StaticResource H2}" />
+                            <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding AbuseChEnabled}" Margin="0,12,0,0"
+                                      Content="Comprobar si un archivo es malware conocido y si su URL de descarga distribuye malware (solo hashes y URLs)" />
+                            <TextBlock Text="AUTH-KEY" Style="{StaticResource FieldLabel}" />
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="Borrar clave" Margin="8,0,0,0"
+                                        Command="{Binding ClearAbuseChKeyCommand}" Visibility="{Binding HasAbuseChKey, Converter={StaticResource BoolToVis}}" />
+                                <Button DockPanel.Dock="Right" Style="{StaticResource NeonButton}" Content="Guardar clave" Margin="8,0,0,0" Command="{Binding SaveAbuseChKeyCommand}" />
+                                <PasswordBox x:Name="AbuseKeyBox" PasswordChanged="AbuseKeyBox_PasswordChanged" />
+                            </DockPanel>
+                            <TextBlock Margin="0,8,0,0" FontSize="12">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource Dim}">
+                                        <Setter Property="Text" Value="Sin clave. Es gratuita: entra en auth.abuse.ch con tu cuenta de GitHub, Google, X o LinkedIn y copia tu Auth-Key." />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasAbuseChKey}" Value="True">
+                                                <Setter Property="Text" Value="Clave guardada y cifrada en este equipo (DPAPI). No se vuelve a mostrar." />
+                                                <Setter Property="Foreground" Value="{StaticResource OkBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ===== Red ===== -->
+                    <Border Style="{StaticResource Section}">
+                        <StackPanel>
+                            <TextBlock Text="Red: DNS protegido" Style="{StaticResource H2}" />
+                            <TextBlock Style="{StaticResource Dim}" FontSize="12" Margin="0,6,0,10"
+                                       Text="Usa Quad9 (9.9.9.9), un DNS sin ánimo de lucro que bloquea dominios de malware y phishing antes de que cargue la página. Tu configuración anterior se guarda y se restaura al desactivarlo." />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Command="{Binding ToggleDnsCommand}">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource NeonButton}">
+                                            <Setter Property="Content" Value="Activar DNS protegido" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DnsProtected}" Value="True">
+                                                    <Setter Property="Content" Value="Desactivar y restaurar mi DNS" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <TextBlock VerticalAlignment="Center" Margin="14,0,0,0" FontSize="12">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource Dim}">
+                                            <Setter Property="Text" Value="Desactivado" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DnsProtected}" Value="True">
+                                                    <Setter Property="Text" Value="Activo (Quad9)" />
+                                                    <Setter Property="Foreground" Value="{StaticResource OkBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                            <TextBlock Text="{Binding DnsStatus}" FontFamily="{StaticResource MonoFont}" FontSize="11" Foreground="{StaticResource TextFaintBrush}"
+                                       TextWrapping="Wrap" Margin="0,8,0,0" />
+                            <TextBlock Style="{StaticResource Dim}" FontSize="12" Margin="0,10,0,0"
+                                       Text="Extensión del navegador anti-phishing (Chrome, Edge, Brave, Opera GX): carpeta browser-extension del instalador → chrome://extensions → Modo desarrollador → Cargar descomprimida." />
+                        </StackPanel>
+                    </Border>
+
                     <!-- ===== VirusTotal ===== -->
                     <Border Style="{StaticResource Section}">
                         <StackPanel>

@@ -56,6 +56,10 @@ public static class MessageTypes
     public const string GetDeviceUsage = "GetDeviceUsage";
     /// <summary>Escaneo de la memoria de los procesos en ejecución (no se permite en modo juego).</summary>
     public const string ScanMemory = "ScanMemory";
+    /// <summary>Estado del DNS protegido (Quad9). Success = activo; Message = detalle.</summary>
+    public const string GetDnsProtection = "GetDnsProtection";
+    /// <summary>Activar/desactivar el DNS protegido (ToggleRequest). Requiere administrador.</summary>
+    public const string SetDnsProtection = "SetDnsProtection";
 
     // ----- Respuesta -----
     public const string Response = "Response";
@@ -106,6 +110,11 @@ public sealed class RegisterUserFoldersRequest
 {
     public string? DownloadsFolder { get; set; }
     public string? DesktopFolder { get; set; }
+}
+
+public sealed class ToggleRequest
+{
+    public bool Enabled { get; set; }
 }
 
 public sealed class KillProcessRequest

@@ -35,14 +35,16 @@ public sealed class RequestDispatcher
     private readonly Protection.AutorunManager _autoruns;
     private readonly Protection.PrivacyMonitorService _privacy;
     private readonly Protection.MemoryScanService _memory;
+    private readonly Protection.DnsProtection _dns;
     private readonly ILogger<RequestDispatcher> _logger;
 
     public RequestDispatcher(StatusProvider status, ScanCoordinator scans, ScanHistoryRepository history, DetectionRepository detections,
         QuarantineManager quarantine, SettingsStore settings, GameModeService gameMode, UserFolderRegistry userFolders,
         FragGuard.Core.Games.GameLibrary games, Updates.RulesUpdateService rulesUpdates,
         Protection.ProtectionStatusProvider protection, Protection.AutorunManager autoruns, Protection.PrivacyMonitorService privacy,
-        Protection.MemoryScanService memory, ILogger<RequestDispatcher> logger)
+        Protection.MemoryScanService memory, Protection.DnsProtection dns, ILogger<RequestDispatcher> logger)
     {
+        _dns = dns;
         _protection = protection;
         _autoruns = autoruns;
         _privacy = privacy;
@@ -74,7 +76,8 @@ public sealed class RequestDispatcher
         MessageTypes.DeleteQuarantine,
         MessageTypes.KillProcess,
         MessageTypes.DisableAutorun,
-        MessageTypes.RestoreAutorun
+        MessageTypes.RestoreAutorun,
+        MessageTypes.SetDnsProtection
     };
 
     /// <summary>Se puede desactivar (solo para desarrollo) con FragGuard:RequireAdminForSensitiveOperations = false.</summary>
@@ -181,6 +184,15 @@ public sealed class RequestDispatcher
                 }
                 case MessageTypes.GetDeviceUsage:
                     return Reply(id, _privacy.Read(), Json.ListDeviceUsageDto);
+                case MessageTypes.GetDnsProtection:
+                    return Reply(id, _dns.Status(), Json.OperationResult);
+                case MessageTypes.SetDnsProtection:
+                {
+                    var req = Require(request, Json.ToggleRequest);
+                    _logger.LogWarning("{User} {Action} el DNS protegido", client.User, req.Enabled ? "activa" : "desactiva");
+                    var result = await Task.Run(() => req.Enabled ? _dns.Enable() : _dns.Disable(), ct).ConfigureAwait(false);
+                    return Reply(id, result, Json.OperationResult);
+                }
                 case MessageTypes.ScanMemory:
                     _logger.LogInformation("{User} solicita un escaneo de memoria", client.User);
                     return Reply(id, _memory.Start(), Json.OperationResult);

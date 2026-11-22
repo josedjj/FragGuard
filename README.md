@@ -7,9 +7,13 @@ Antivirus **ligero para gamers** en Windows 10/11 (MVP v0.1). Su ventaja diferen
 - **Cuarentena cifrada** (AES-256-GCM) con restaurar / eliminar.
 - **Modo juego automático**: pausa escaneos programados, silencia avisos no críticos y baja la prioridad de CPU y E/S.
 - Reglas **YARA** contra *infostealers* de Discord, Steam y navegadores, y avisos por nombres de **cheats / trainers / "free skins"**.
-- Consulta de hashes en **VirusTotal**. Nunca sube archivos y la clave la pone el usuario.
+- Consulta de hashes en **VirusTotal** y **MalwareBazaar**, y de URLs de descarga (Mark-of-the-Web) en **URLhaus**. Nunca sube archivos y las claves las pone el usuario.
+- **Firmas Authenticode** y editores de confianza (Valve, Riot, Epic, NVIDIA...) para reducir falsos positivos; detección de **PUP** y mineros.
+- **Reglas YARA actualizables** por un canal firmado con ECDSA P-256 (nunca se aceptan reglas sin firma válida).
+- **Protección en ejecución** (sección 7): reglas de comportamiento sobre procesos nuevos, escudo **anti-ransomware** con señuelos, **protección de cuentas** de Discord/Steam/navegadores, aviso de uso de **cámara y micrófono**, vigilancia de **autoruns** y de exclusiones de Defender, **USB**, escaneo de **memoria** bajo demanda y **DNS protegido** opcional.
+- **Extensión de navegador** (Chrome/Edge, MV3) que bloquea ~21 800 dominios de estafas de Steam/Discord/skins.
 - Página **Juegos**: juegos instalados (Steam, Epic, Riot, EA, Ubisoft, GOG, Battle.net, Rockstar), última vez jugado, tamaño, **Jugar** y **Desinstalar sin dejar restos**.
-- Sin drivers ni hooks de kernel, sin inyección en procesos: **compatible con Vanguard, Easy Anti-Cheat y BattlEye**.
+- Sin drivers ni hooks de kernel, sin inyección en procesos: **compatible con Vanguard, Easy Anti-Cheat y BattlEye**. Todo funciona en modo usuario.
 
 > ⚠️ FragGuard es una capa **complementaria**. Windows Defender sigue activo: para sustituirlo en el Centro de seguridad de Windows hace falta un driver ELAM firmado y pertenecer al programa MVI de Microsoft.
 
@@ -21,12 +25,16 @@ Antivirus **ligero para gamers** en Windows 10/11 (MVP v0.1). Su ventaja diferen
 ┌──────────── Sesión del usuario ────────────┐         ┌──────────── Sesión 0 (LocalSystem) ─────────────┐
 │ FragGuard.exe (WPF, vive en la bandeja)     │  named  │ FragGuard.Service.exe (Worker Service)           │
 │  • Panel, escaneos, cuarentena, ajustes     │  pipe   │  • PipeServer  (\\.\pipe\FragGuard.v1)           │
-│  • Detector de pantalla completa  ──────────┼────────►│  • RealtimeProtection (FileSystemWatcher)        │
-│  • Notificaciones (bandeja)       ◄─────────┼─eventos─│  • GameMode (Toolhelp + pantalla completa)       │
-│  • Carpetas del usuario (Descargas...) ─────┼────────►│  • ScanCoordinator + ScheduledScan               │
-└─────────────────────────────────────────────┘         │  • ResourceMonitor / ProcessPriority             │
+│  • Protección, Inicio de Windows, Juegos    │         │  • RealtimeProtection (FileSystemWatcher)        │
+│  • Detector de pantalla completa  ──────────┼────────►│  • GameMode (Toolhelp + pantalla completa)       │
+│  • Notificaciones (bandeja)       ◄─────────┼─eventos─│  • ProcessMonitor (reglas de comportamiento)     │
+│  • Carpetas del usuario (Descargas...) ─────┼────────►│  • RansomwareShield · AccountProtection (4663)   │
+└─────────────────────────────────────────────┘         │  • Privacy · Persistence · RemovableDrives       │
+                                                        │  • ScanCoordinator + ScheduledScan + RulesUpdate │
+                                                        │  • ResourceMonitor / SelfIntegrity / DNS         │
                                                         │            │ FragGuard.Core (motor)              │
-                                                        │  hash → caché → YARA → comprimidos → VirusTotal  │
+                                                        │  hash → caché → YARA → comprimidos → nube (VT,   │
+                                                        │  MalwareBazaar, URLhaus) → Authenticode/política │
                                                         │  → heurística → cuarentena → SQLite              │
                                                         └──────────────────────────────────────────────────┘
 Datos: %ProgramData%\FragGuard\ { fragguard.db, settings.json, quarantine\, logs\, *.key }  (ACL: SYSTEM + Administradores)
@@ -38,13 +46,16 @@ Datos: %ProgramData%\FragGuard\ { fragguard.db, settings.json, quarantine\, logs
 FragGuard.sln
 ├── Directory.Build.props            Ajustes comunes (x64, nullable, versión)
 ├── rules/                           Reglas YARA de ejemplo (se copian junto al servicio)
-├── scripts/install.ps1, uninstall.ps1
+├── scripts/                         install, uninstall, sign, new-dev-certificate, build-extension
+├── browser-extension/               Extensión MV3 (declarativeNetRequest) contra estafas gamer
 ├── src/
 │   ├── FragGuard.Shared/   net8.0          DTOs, protocolo del pipe, JSON source-generated
-│   ├── FragGuard.Core/     net8.0-windows  Motor: YARA, hashing, comprimidos, VirusTotal, cuarentena, SQLite
-│   ├── FragGuard.Service/  net8.0-windows  Servicio de Windows
+│   ├── FragGuard.Core/     net8.0-windows  Motor: YARA, hashing, comprimidos, nube, Authenticode, reglas de
+│   │                                       comportamiento, autoruns, canal de reglas firmado, cuarentena, SQLite
+│   ├── FragGuard.Service/  net8.0-windows  Servicio de Windows (protección en ejecución)
 │   └── FragGuard.UI/       net8.0-windows  Interfaz WPF (solo referencia Shared, nunca analiza nada)
-└── tests/FragGuard.Core.Tests/             54 tests (xUnit): detección, cuarentena, concurrencia, memoria...
+├── tools/FragGuard.RulesSigner/            Firma del canal de reglas (clave privada FUERA del repo)
+└── tests/FragGuard.Core.Tests/             138 tests (xUnit) + corpus de falsos positivos opcional
 ```
 
 ### Dependencias NuGet
@@ -69,8 +80,13 @@ FragGuard.sln
 ```powershell
 cd E:\Antivirus
 dotnet build FragGuard.sln
-dotnet test                           # 54 tests: deben pasar todos
+dotnet test                           # 138 tests: deben pasar todos
+
+# Corpus de falsos positivos (lento): analiza ~6000 ejecutables reales del equipo y exige 0 maliciosos
+$env:FG_FP_CORPUS = 1; dotnet test --filter "FullyQualifiedName~FalsePositiveCorpus" --logger "console;verbosity=detailed"
 ```
+
+Último resultado del corpus: **6000 archivos, 0 maliciosos, 1 sospechoso** (`ssh-keygen.exe` por la heurística de nombres; corregido después y cubierto por un test). Ejecútalo antes de publicar reglas nuevas.
 
 ## 4. Ejecutar en modo desarrollo (sin instalar)
 
@@ -182,16 +198,71 @@ Remove-Item C:\FragGuardTest -Recurse -Force
 | Modo juego | Abre un juego de la lista, uno lanzado desde Steam/Epic, o cualquier app a pantalla completa | Chip **MODO JUEGO** en el panel y el servicio en prioridad baja |
 | Bloqueo sin admin | Con la UI sin elevar, intenta **Guardar cambios** | Pide reabrir como administrador |
 
-## 7. Configurar VirusTotal (opcional)
+## 7. Protección en ejecución (modo usuario, sin drivers)
+
+Cada módulo se activa o desactiva en **Ajustes → Protección en ejecución**, y su estado se ve en la página **Protección**.
+
+| Módulo | Cómo funciona | Respuesta |
+|---|---|---|
+| **Reglas de comportamiento** | Instantánea de procesos cada 1,5 s (3 s en modo juego) y lectura de la línea de comandos de `vssadmin`, `wmic`, `bcdedit`, `powershell`, `certutil`, `schtasks`... Detecta borrado de copias de sombra, desactivar la recuperación, exclusiones o desactivar Defender, PowerShell oculto/codificado, descargas con LOLBins y tareas programadas sospechosas. | Avisar, detener el proceso o detener también a su **origen** (y aislarlo si está en una carpeta de usuario). Si el origen está firmado por un editor de confianza, solo avisa. |
+| **Anti-ransomware** | Señuelos ocultos en Documentos, Escritorio e Imágenes, más detección de renombrados/cifrados masivos. El culpable se identifica por sus contadores de E/S (`GetProcessIoCounters`). | Detiene el proceso y lo aísla. |
+| **Protección de cuentas** | Auditoría de Windows (SACL + evento **4663**) sobre los tokens de Discord, `ssfn`/`config` de Steam y los `Login Data`/`Cookies` de los navegadores. | Si un proceso que no es el propio cliente los lee: lo detiene y avisa. |
+| **Cámara y micrófono** | Lee cada 5 s el `ConsentStore` de Windows (qué app los usa y desde cuándo). | Avisa si un programa sin firma de confianza empieza a usarlos. |
+| **Inicio de Windows** | Inventario de Run/RunOnce, carpetas de Inicio, tareas programadas y servicios. Página **Inicio de Windows** para revisar, **desactivar** y **restaurar**. Vigila también las exclusiones de Defender. | Avisa de entradas nuevas sin firma de confianza. |
+| **USB** | Al conectar una unidad extraíble revisa `autorun.inf` y analiza ejecutables, scripts y comprimidos de los 3 primeros niveles; después la vigila en tiempo real mientras esté conectada. | Cuarentena de lo malicioso. |
+| **Memoria** | Escaneo YARA de la memoria de procesos **bajo demanda** (Escanear → Memoria), nunca en modo juego. | **Solo avisa**: no detiene nada, para no matar procesos legítimos por un falso positivo. |
+| **DNS protegido** | Opcional (Ajustes → Red): pone **Quad9** (9.9.9.9, bloquea dominios maliciosos) con DNS-over-HTTPS y guarda la configuración anterior para restaurarla. | Bloqueo a nivel de red. |
+| **Autoprotección** | Al arrancar comprueba la firma Authenticode de sus binarios (firma inválida = alguien los modificó). Los binarios y datos tienen ACL de administradores, y la UI avisa si el servicio deja de responder más de 15 s. | Avisos. |
+
+**Límite honesto**: sin driver no se puede impedir que un proceso arranque. Las reglas actúan **después** (hasta 1,5 s), lo que basta para cortar la mayoría de cadenas de ransomware y stealers, pero no todas.
+
+## 8. Servicios en la nube (opcionales)
+
+### VirusTotal
 
 1. Crea una cuenta gratuita en [virustotal.com](https://www.virustotal.com) y copia tu **API key** (perfil → API key).
 2. En FragGuard (como administrador) ve a **Ajustes → VirusTotal**, pega la clave y pulsa **Guardar clave**.
 
 La clave se guarda cifrada con DPAPI en `%ProgramData%\FragGuard\vt.key` y nunca vuelve a la UI ni aparece en los logs. Solo se consultan **hashes SHA-256** de ejecutables, scripts y comprimidos, respetando la cuota gratuita (4/min, 500/día). Si no queda cuota, el escaneo continúa sin esperar.
 
+### abuse.ch (MalwareBazaar + URLhaus)
+
+1. Crea una **Auth-Key gratuita** en [auth.abuse.ch](https://auth.abuse.ch/).
+2. **Ajustes → abuse.ch**, pega la clave y pulsa **Guardar clave**.
+
+Con ella, FragGuard consulta el **hash** en MalwareBazaar y la **URL de descarga** del archivo (Mark-of-the-Web) en URLhaus. Desde 2026 abuse.ch ya no ofrece descargas sin clave, por eso es por consulta.
+
+### Canal de reglas firmado
+
+El servicio descarga cada 12 h (nunca en modo juego) `manifest.json` + `manifest.sig` del repositorio público y **solo** acepta reglas cuya firma ECDSA P-256 coincida con la clave pública embebida en el binario. Si las reglas nuevas no compilan, sigue con las de serie. Para publicar reglas:
+
+```powershell
+dotnet run --project tools/FragGuard.RulesSigner -- sign rules E:\FragGuard-Releases\rules-channel
+```
+
+La clave privada vive en `%APPDATA%\FragGuard-Signing\` cifrada con DPAPI (`export-backup` para hacer copia). **Nunca** va al repositorio.
+
+## 9. Extensión de navegador
+
+```powershell
+.\scripts\build-extension.ps1     # (opcional) descarga la lista actual y regenera browser-extension\rules
+```
+
+En Chrome/Edge: `chrome://extensions` → **Modo desarrollador** → **Cargar descomprimida** → carpeta `browser-extension` (o `C:\Program Files\FragGuard\browser-extension` tras instalar). Solo pide el permiso `declarativeNetRequest`: no lee las páginas ni el historial. Lista de dominios de [nikolaischunk/discord-phishing-links](https://github.com/nikolaischunk/discord-phishing-links) (MIT).
+
+## 10. Banco de pruebas en máquina virtual
+
+Las pruebas destructivas (señuelos de ransomware, reglas que detienen al proceso origen, DNS) **no** se hacen en el equipo principal:
+
+1. VM Windows 11 (Hyper-V o VirtualBox) **sin carpetas compartidas** y con red NAT; instantánea limpia antes de cada prueba.
+2. Instala FragGuard con `install.ps1 -SelfContained`.
+3. Simulaciones sin malware real: `vssadmin delete shadows /all /quiet` (lanzado desde un `.bat` en Descargas), renombrar en bucle 30 archivos de un señuelo con extensión `.locked`, leer `%APPDATA%\discord\Local Storage\leveldb\*.ldb` con PowerShell, activar el DNS protegido y resolver un dominio de prueba.
+4. Revisa **Historial** y `%ProgramData%\FragGuard\logs\` y vuelve a la instantánea.
+5. Para muestras reales usa solo repositorios para investigadores (MalwareBazaar) **dentro de la VM aislada**.
+
 ---
 
-## 8. Decisiones de diseño y seguridad
+## 11. Decisiones de diseño y seguridad
 
 | Tema | Decisión |
 |---|---|
@@ -208,7 +279,9 @@ La clave se guarda cifrada con DPAPI en `%ProgramData%\FragGuard\vt.key` y nunca
 | Juegos: acciones | **Jugar, desinstalar y borrar restos los hace la UI con los permisos del usuario**, nunca el servicio SYSTEM. Un comando "borrar carpeta" en el servicio sería un vector de escalada de privilegios. La desinstalación usa siempre el **desinstalador oficial** (`steam://uninstall`, `UninstallString` de Riot/EA/Ubisoft...). |
 | Juegos: restos | Solo carpetas con el nombre **exacto** del juego (o de su carpeta de instalación), en AppData, LocalLow, Documentos, My Games, Partidas guardadas y ProgramData, hasta 2 niveles. Nunca una carpeta que contenga otro juego instalado. Lo que puede contener partidas viene **desmarcado** y todo va a la **Papelera**. Lo cubren `LeftoverFinderTests`. |
 
-## 9. Consumo medido (MVP, equipo de desarrollo)
+## 12. Consumo medido (equipo de desarrollo)
+
+Con todos los módulos de protección activos, el servicio instalado midió **~43,5 MB y ~0,8 % de CPU** poco después de arrancar (la medición en reposo del MVP, abajo, era sin esos módulos).
 
 | Proceso / situación | RAM privada | Working set | CPU |
 |---|---|---|---|
@@ -221,46 +294,40 @@ La clave se guarda cifrada con DPAPI en `%ProgramData%\FragGuard\vt.key` y nunca
 
 La ventana se destruye al cerrarla y se recorta la memoria. El coste de WPF solo se paga mientras la ventana está abierta (ver mejoras v2).
 
-## 10. Limitaciones conocidas del MVP
+## 13. Limitaciones conocidas
 
-- **No bloquea la ejecución**: sin driver no se puede impedir que un archivo se ejecute. Se detecta al aparecer en disco (tiempo real) y al ejecutarse (sondeo de procesos cada 3 s).
-- Las reglas YARA son **ejemplos educativos**: los stealers empaquetados u ofuscados (PyInstaller, ConfuserEx...) no exponen cadenas, y para ellos depende de VirusTotal.
+- **No bloquea la ejecución**: sin driver no se puede impedir que un archivo se ejecute. Se detecta al aparecer en disco (tiempo real) y al ejecutarse (sondeo de procesos cada 1,5 s, 3 s en modo juego).
+- La protección de cuentas depende de la **auditoría de Windows** (evento 4663): llega una fracción de segundo después de la lectura.
+- Las reglas YARA son **pocas y propias**: los stealers empaquetados u ofuscados (PyInstaller, ConfuserEx...) no exponen cadenas, y para ellos depende de VirusTotal/MalwareBazaar y de las reglas de comportamiento.
+- No se ha hecho una **evaluación independiente** (AV-TEST, AV-Comparatives). Los señuelos de ransomware y las reglas que detienen al proceso origen solo se han probado con tests y simulaciones, no con muestras reales.
+- Distribuir a otras personas requiere un **certificado de firma comercial** (si no, SmartScreen avisará).
 - El escaneo completo vuelve a calcular el hash de cada archivo: no hay caché por ruta, tamaño y fecha.
 - Algunos `.7z` no se pueden leer en *streaming*, y los comprimidos con contraseña no se inspeccionan (sí se analizan los nombres de sus entradas).
 - Las notificaciones son *balloons* de la bandeja (Windows las muestra como toast, pero sin botones de acción).
 
 ---
 
-## 11. Mejoras sugeridas para la versión 2
+## 14. Hoja de ruta (sin kernel)
 
-**Detección**
-1. **Actualización automática y firmada de reglas YARA** (descarga periódica con verificación de firma) e integración de colecciones públicas como YARA-Forge.
-2. **Verificación Authenticode y reputación de editor** (`WinVerifyTrust`): no alertar sobre binarios firmados por Valve, Riot, Epic, NVIDIA... Reduce mucho los falsos positivos.
-3. **Desempaquetado de PyInstaller y análisis de ensamblados .NET**, que son los formatos más usados por los stealers de Discord.
-4. **Monitor de integridad del cliente de Discord**: hash del `index.js` de `discord_desktop_core` para detectar inyecciones al momento.
-5. Escaneo de memoria de procesos bajo demanda (`yr_rules_scan_proc`), **solo con el modo juego inactivo** para no chocar con los anti-cheat.
-6. Cola persistente de consultas a VirusTotal para los archivos que se quedaron sin cuota, y subida opcional con consentimiento explícito.
+Ya hecho: Authenticode y editores de confianza, canal de reglas firmado, MalwareBazaar/URLhaus, PUP y mineros, reglas de comportamiento, anti-ransomware, protección de cuentas, cámara/micrófono, autoruns, USB, escaneo de memoria, DNS protegido, extensión de navegador y corpus de falsos positivos.
 
-**Rendimiento**
-7. **Caché por ruta, tamaño y fecha + USN Journal** para que el escaneo completo solo analice lo que ha cambiado.
-8. **Agente de bandeja ultraligero** (Native AOT, < 10 MB) y ventana WPF solo bajo demanda, en otro proceso.
-9. **Native AOT** para el servicio: menos RAM y arranque instantáneo.
-10. **ETW** (`Microsoft-Windows-Kernel-Process`) en lugar de sondear procesos: detección instantánea de ejecuciones y CPU aún menor.
+Pendiente, todo en modo usuario:
 
-**Producto**
-11. Instalador **MSI/MSIX** (WiX) con **firma de código**, actualizaciones automáticas y desinstalación limpia.
-12. Notificaciones **toast nativas con acciones** ("Ver", "Restaurar", "Cerrar proceso") mediante Windows App SDK.
-13. Perfiles de modo juego por título (p. ej. sin escaneos con Valorant, bajo impacto con juegos *single player*).
-14. Informe semanal ("X descargas analizadas, Y amenazas bloqueadas") e historial exportable.
-15. Interfaz en inglés y español.
+1. **ETW** (`Microsoft-Windows-Kernel-Process`) en lugar de sondear procesos: detección instantánea y menos CPU.
+2. **Desempaquetado de PyInstaller y análisis de ensamblados .NET** (formatos típicos de los stealers de Discord).
+3. **Integridad del cliente de Discord**: hash de `discord_desktop_core\index.js` para detectar inyecciones.
+4. **Caché por ruta/tamaño/fecha + USN Journal** para escaneos completos incrementales.
+5. Cola persistente de consultas a la nube para los archivos que se quedaron sin cuota.
+6. Instalador **MSI/MSIX** con certificado comercial y actualizaciones automáticas.
+7. Notificaciones **toast nativas con acciones** y agente de bandeja ultraligero (Native AOT).
+8. Interfaz en inglés, perfiles de modo juego por título e informe semanal.
+9. **Evaluación independiente** y banco de pruebas automatizado en VM.
 
-**Protección del propio antivirus**
-16. *Self-protection*: ACL del servicio que impida a los usuarios detenerlo y vigilancia de sus binarios. A largo plazo, ELAM + *Protected Process Light* (requiere MVI).
-17. Opcional y con mucho cuidado por los anti-cheat: un **minifiltro de sistema de archivos firmado** para bloquear antes de ejecutar.
+Descartado a propósito: minifiltro, ELAM, PPL y cualquier driver o inyección, por compatibilidad con los anti-cheat.
 
 ---
 
-## 12. Solución de problemas
+## 15. Solución de problemas
 
 | Síntoma | Qué revisar |
 |---|---|
@@ -269,3 +336,6 @@ La ventana se destruye al cerrarla y se recorta la memoria. El coste de WPF solo
 | No detecta EICAR | ¿Defender lo borró antes? Revisa la exclusión. ¿La carpeta está en **Carpetas vigiladas** y la extensión en la lista? |
 | Regla YARA propia no carga | Revisa el log del servicio: las reglas con errores se omiten con un mensaje `Regla YARA inválida` |
 | Logs de la UI | `%LOCALAPPDATA%\FragGuard\logs\ui-*.log` |
+| Protección de cuentas "inactiva" | Requiere que el servicio pueda activar la auditoría de *Sistema de archivos*; revisa el log (`AuditSetSystemPolicy`) y que ninguna directiva de grupo la bloquee |
+| Un programa legítimo fue detenido por una regla | **Historial** muestra la regla y quién lo lanzó; desactiva temporalmente **Reglas de comportamiento** en Ajustes y avísanos con el nombre de la regla |
+| Sin Internet tras activar DNS protegido | Desactívalo en **Ajustes → Red**: restaura la configuración guardada en `%ProgramData%\FragGuard\dns-backup.json` |

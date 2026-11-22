@@ -273,6 +273,45 @@ public sealed class ServiceClient : IDisposable
         return response.GetPayload(Json.ListGameDto) ?? new List<GameDto>();
     }
 
+    public async Task SetAbuseChKeyAsync(string? apiKey) =>
+        EnsureOk(await RequestAsync(MessageTypes.SetAbuseChKey, new SetVirusTotalKeyRequest { ApiKey = apiKey }, Json.SetVirusTotalKeyRequest, Json.OperationResult).ConfigureAwait(false));
+
+    /// <summary>Comprueba el canal firmado de reglas. Devuelve el mensaje de resultado.</summary>
+    public async Task<string> CheckRuleUpdatesAsync()
+    {
+        var response = await SendAsync(PipeProtocol.Create(MessageTypes.CheckRuleUpdates), TimeSpan.FromSeconds(120)).ConfigureAwait(false);
+        var r = response.GetPayload(Json.OperationResult);
+        return r?.Message ?? "Sin respuesta.";
+    }
+
+    public Task<ProtectionStatusDto> GetProtectionStatusAsync() => RequestAsync(MessageTypes.GetProtectionStatus, Json.ProtectionStatusDto);
+
+    public async Task<List<AutorunEntryDto>> ListAutorunsAsync()
+    {
+        var response = await SendAsync(PipeProtocol.Create(MessageTypes.ListAutoruns), TimeSpan.FromSeconds(60)).ConfigureAwait(false);
+        return response.GetPayload(Json.ListAutorunEntryDto) ?? new List<AutorunEntryDto>();
+    }
+
+    public async Task<OperationResult> DisableAutorunAsync(string id) =>
+        EnsureOk(await RequestAsync(MessageTypes.DisableAutorun, new IdRequest { Id = id }, Json.IdRequest, Json.OperationResult).ConfigureAwait(false));
+
+    public async Task<OperationResult> RestoreAutorunAsync(string id) =>
+        EnsureOk(await RequestAsync(MessageTypes.RestoreAutorun, new IdRequest { Id = id }, Json.IdRequest, Json.OperationResult).ConfigureAwait(false));
+
+    public Task<List<DeviceUsageDto>> GetDeviceUsageAsync() => RequestAsync(MessageTypes.GetDeviceUsage, Json.ListDeviceUsageDto);
+
+    public Task<OperationResult> GetDnsProtectionAsync() => RequestAsync(MessageTypes.GetDnsProtection, Json.OperationResult);
+
+    public async Task<OperationResult> SetDnsProtectionAsync(bool enabled)
+    {
+        var response = await SendAsync(PipeProtocol.Create(MessageTypes.SetDnsProtection, new ToggleRequest { Enabled = enabled }, Json.ToggleRequest),
+            TimeSpan.FromSeconds(90)).ConfigureAwait(false);
+        return EnsureOk(response.GetPayload(Json.OperationResult) ?? OperationResult.Fail("Sin respuesta."));
+    }
+
+    public async Task<OperationResult> ScanMemoryAsync() =>
+        EnsureOk(await RequestAsync(MessageTypes.ScanMemory, Json.OperationResult).ConfigureAwait(false));
+
     public async Task KillProcessAsync(int pid) =>
         EnsureOk(await RequestAsync(MessageTypes.KillProcess, new KillProcessRequest { ProcessId = pid }, Json.KillProcessRequest, Json.OperationResult).ConfigureAwait(false));
 

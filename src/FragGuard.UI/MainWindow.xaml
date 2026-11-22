@@ -32,9 +32,17 @@
                     <!-- Logo -->
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="22,22,0,28">
                         <Image Source="Assets/fragguard.png" Width="32" Height="32" RenderOptions.BitmapScalingMode="HighQuality" />
-                        <TextBlock Text="FRAGGUARD" FontFamily="{StaticResource HeadingFont}" FontWeight="Bold" FontSize="21"
-                                   Foreground="{StaticResource AccentGradient}" Margin="10,0,0,0" VerticalAlignment="Center"
-                                   Effect="{StaticResource GlowAccent}" />
+                        <!-- Logotipo: FRA [GG] UARD, con "GG" (good game) en una placa neón -->
+                        <StackPanel Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="FRA" FontFamily="{StaticResource HeadingFont}" FontWeight="Bold" FontSize="21"
+                                       Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                            <Border CornerRadius="5" Background="{StaticResource AccentGradient}" Padding="4,0,4,1" Margin="2,0,2,0"
+                                    VerticalAlignment="Center" Effect="{StaticResource GlowAccent2}">
+                                <TextBlock Text="GG" FontFamily="{StaticResource HeadingFont}" FontWeight="Bold" FontSize="21" Foreground="#FF061018" />
+                            </Border>
+                            <TextBlock Text="UARD" FontFamily="{StaticResource HeadingFont}" FontWeight="Bold" FontSize="21"
+                                       Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                        </StackPanel>
                     </StackPanel>
 
                     <!-- Pie: modo juego + estado de conexión -->
@@ -95,12 +103,18 @@
                         <RadioButton Style="{StaticResource NavButton}" Content="Escanear" Tag="{StaticResource IconRadar}"
                                      Command="{Binding NavigateCommand}" CommandParameter="Scan"
                                      IsChecked="{Binding CurrentPageKey, Mode=OneWay, Converter={StaticResource Equals}, ConverterParameter=Scan}" />
+                        <RadioButton Style="{StaticResource NavButton}" Content="Protección" Tag="{StaticResource IconSecurity}"
+                                     Command="{Binding NavigateCommand}" CommandParameter="Protection"
+                                     IsChecked="{Binding CurrentPageKey, Mode=OneWay, Converter={StaticResource Equals}, ConverterParameter=Protection}" />
                         <RadioButton Style="{StaticResource NavButton}" Content="Cuarentena" Tag="{StaticResource IconLock}"
                                      Command="{Binding NavigateCommand}" CommandParameter="Quarantine"
                                      IsChecked="{Binding CurrentPageKey, Mode=OneWay, Converter={StaticResource Equals}, ConverterParameter=Quarantine}" />
                         <RadioButton Style="{StaticResource NavButton}" Content="Historial" Tag="{StaticResource IconHistory}"
                                      Command="{Binding NavigateCommand}" CommandParameter="History"
                                      IsChecked="{Binding CurrentPageKey, Mode=OneWay, Converter={StaticResource Equals}, ConverterParameter=History}" />
+                        <RadioButton Style="{StaticResource NavButton}" Content="Inicio de Windows" Tag="{StaticResource IconPower}"
+                                     Command="{Binding NavigateCommand}" CommandParameter="Autoruns"
+                                     IsChecked="{Binding CurrentPageKey, Mode=OneWay, Converter={StaticResource Equals}, ConverterParameter=Autoruns}" />
                         <RadioButton Style="{StaticResource NavButton}" Content="Ajustes" Tag="{StaticResource IconCog}"
                                      Command="{Binding NavigateCommand}" CommandParameter="Settings"
                                      IsChecked="{Binding CurrentPageKey, Mode=OneWay, Converter={StaticResource Equals}, ConverterParameter=Settings}" />

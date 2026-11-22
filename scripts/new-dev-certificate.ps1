@@ -1,4 +1,4 @@
-#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
     Crea (o elimina) un certificado de firma de código AUTOFIRMADO para firmar FragGuard en ESTE equipo.

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>FragGuard Anti-Phishing</title>
+  <style>
+    :root { --bg:#080B12; --surface:#0F1420; --border:#223049; --text:#E6EDF7; --dim:#8A97AD; --accent:#00E5FF; --accent2:#FF2E88; --ok:#2BFF88; }
+    body { margin:0; width:300px; background:var(--bg); color:var(--text); font:13px "Segoe UI", system-ui, sans-serif; }
+    header { display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--border); }
+    header img { width:28px; height:28px; }
+    .logo { font:700 17px Bahnschrift, "Segoe UI", sans-serif; letter-spacing:.5px; }
+    .gg { background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#061018; border-radius:4px; padding:0 3px; margin:0 1px; }
+    main { padding:14px 16px 16px; }
+    .status { display:flex; align-items:center; gap:8px; font-weight:600; }
+    .dot { width:9px; height:9px; border-radius:50%; background:var(--ok); box-shadow:0 0 8px var(--ok); }
+    p { color:var(--dim); line-height:1.45; margin:10px 0 0; }
+    .card { margin-top:12px; padding:10px 12px; background:var(--surface); border:1px solid var(--border); border-radius:10px; }
+    .num { font:600 20px Bahnschrift, "Segoe UI", sans-serif; color:var(--accent); }
+    small { color:var(--dim); }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="icons/icon48.png" alt="">
+    <span class="logo">FRA<span class="gg">GG</span>UARD</span>
+  </header>
+  <main>
+    <div class="status"><span class="dot"></span>Protección anti-phishing activa</div>
+    <div class="card">
+      <div class="num" id="count">—</div>
+      <small>dominios de estafas gamer bloqueados</small>
+    </div>
+    <p>Bloquea webs de Discord Nitro falso, phishing de cuentas de Steam y "free skins". El bloqueo lo hace el propio navegador: la extensión <b>no lee</b> las páginas que visitas.</p>
+    <p><small>Lista de dominios: nikolaischunk/discord-phishing-links (MIT).</small></p>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

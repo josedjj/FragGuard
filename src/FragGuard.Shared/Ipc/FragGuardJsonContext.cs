@@ -40,6 +40,7 @@ namespace FragGuard.Shared.Ipc;
 [JsonSerializable(typeof(List<AutorunEntryDto>))]
 [JsonSerializable(typeof(List<DeviceUsageDto>))]
 [JsonSerializable(typeof(ProtectionStatusDto))]
+[JsonSerializable(typeof(ToggleRequest))]
 public partial class FragGuardJsonContext : JsonSerializerContext
 {
     private static readonly Lazy<FragGuardJsonContext> IndentedLazy = new(() => new FragGuardJsonContext(new JsonSerializerOptions

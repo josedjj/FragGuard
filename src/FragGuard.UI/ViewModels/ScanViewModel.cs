@@ -15,6 +15,8 @@ public sealed partial class ScanViewModel : PageViewModel
 
     [ObservableProperty] private bool _isScanning;
     [ObservableProperty] private bool _isPaused;
+    /// <summary>El escaneo de memoria no se pausa ni se cancela desde aquí (termina solo y se interrumpe si empiezas a jugar).</summary>
+    [ObservableProperty] private bool _isMemoryScan;
     [ObservableProperty] private string _scanTitle = "";
     [ObservableProperty] private string _filesScanned = "0";
     [ObservableProperty] private string _filesSkipped = "0";
@@ -48,6 +50,7 @@ public sealed partial class ScanViewModel : PageViewModel
         if (p.State is ScanState.Completed or ScanState.Cancelled or ScanState.Failed)
             return; // el resumen llega con ScanCompleted
         IsScanning = true;
+        IsMemoryScan = p.Kind == ScanKind.Memory;
         IsPaused = p.State == ScanState.Paused;
         ScanTitle = $"Escaneo {Format.ScanKind(p.Kind).ToLowerInvariant()}";
         FilesScanned = Format.Number(p.FilesScanned);

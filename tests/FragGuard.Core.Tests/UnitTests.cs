@@ -38,6 +38,8 @@ public class CheatLureAnalyzerTests
     [InlineData(@"C:\proyecto\node_modules\lucide-react\dist\esm\icons\heart-crack.js")]
     [InlineData(@"C:\venv\Lib\site-packages\androguard\pentest\disable_cert_chain_bypass_v7a.js")]
     [InlineData(@"C:\proyecto\node_modules\some-tool\bin\injector.exe")]
+    // Falso positivo encontrado por el corpus de software limpio:
+    [InlineData(@"C:\Program Files\Git\usr\bin\ssh-keygen.exe")]
     public void NormalNames_AreNotFlagged(string name) => Assert.Null(CheatLureAnalyzer.Analyze(name));
 }
 

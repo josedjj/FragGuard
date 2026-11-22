@@ -140,14 +140,21 @@ public sealed class ProcessMonitorService : BackgroundService
                 originQuarantined = QuarantineOrigin(originPath, match.RuleId);
         }
 
+        // Se atribuye al ORIGEN solo cuando la regla lo señala como culpable (ransomware, desactivar Defender) y no
+        // es de confianza; en el resto, al proceso detectado. Siempre se indica quién lo lanzó.
+        bool blameOrigin = match.Response == BehaviorResponse.KillProcessAndParent && !facts.ParentTrusted && facts.ParentPath is not null;
+        var threat = match.ToThreat();
+        if (facts.ParentName is not null)
+            threat.Description += $" (Lanzado por {facts.ParentName}.)";
+
         _responder.Report(new DetectionDto
         {
             ScanKind = ScanKind.Realtime,
-            FilePath = facts.ParentPath ?? facts.ImagePath ?? facts.Name,
+            FilePath = blameOrigin ? facts.ParentPath! : facts.ImagePath ?? facts.Name,
             Verdict = match.Severity >= ThreatSeverity.High ? FileVerdict.Malicious : FileVerdict.Suspicious,
             Action = originQuarantined is not null ? ThreatAction.Quarantined : killed ? ThreatAction.ProcessTerminated : ThreatAction.Warned,
             QuarantineId = originQuarantined,
-            Threats = new List<ThreatInfo> { match.ToThreat() },
+            Threats = new List<ThreatInfo> { threat },
             DetectedUtc = DateTime.UtcNow
         });
     }

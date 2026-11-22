@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Firma con Authenticode los binarios PROPIOS de FragGuard en una carpeta publicada.
 

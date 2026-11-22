@@ -33,7 +33,8 @@ public static partial class CheatLureAnalyzer
         @"(aim[\s._-]?bot|wall[\s._-]?hack|trigger[\s._-]?bot|no[\s._-]?recoil|esp[\s._-]?hack|" +
         // Nota: NO incluimos "loader" ni "mod" a secas: los mod loaders legítimos (BepInEx, Fabric, Forge) son habituales.
         @"cheat|hack(?!athon)|trainer|injector|spoofer|hwid[\s._-]?(spoof|changer)|unlock[\s._-]?all|" +
-        @"skin[\s._-]?changer|mod[\s._-]?menu|executor|bypass|crack(ed)?|keygen)",
+        // "keygen" excepto ssh-keygen (herramienta legítima de Git/OpenSSH: falso positivo del corpus limpio).
+        @"skin[\s._-]?changer|mod[\s._-]?menu|executor|bypass|crack(ed)?|(?<!ssh-)keygen)",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex StrongTermsRegex();
 

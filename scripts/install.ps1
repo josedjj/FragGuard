@@ -1,4 +1,4 @@
-#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
     Compila, publica e instala FragGuard (servicio + interfaz).
@@ -123,6 +123,12 @@ if (-not $SkipUI) {
     New-Item -ItemType Directory -Force -Path $uiDir | Out-Null
     Copy-Item -Path (Join-Path $uiPublish '*') -Destination $uiDir -Recurse -Force
     $uiExe = Join-Path $uiDir 'FragGuard.exe'
+
+    # Extensión anti-phishing del navegador y avisos de licencias de terceros
+    $extDir = Join-Path $InstallRoot 'browser-extension'
+    if (Test-Path $extDir) { Remove-Item $extDir -Recurse -Force }
+    Copy-Item -Path (Join-Path $repoRoot 'browser-extension') -Destination $extDir -Recurse -Force
+    Copy-Item -Path (Join-Path $repoRoot 'THIRD_PARTY_NOTICES.md') -Destination $InstallRoot -Force
 
     # Acceso directo en el menú Inicio (todos los usuarios)
     $shortcutPath = Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\FragGuard.lnk'

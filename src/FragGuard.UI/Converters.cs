@@ -19,6 +19,14 @@ public sealed class BoolToVisibilityConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
 }
 
+/// <summary>Visible solo si TODOS los valores enlazados son true (MultiBinding).</summary>
+public sealed class AllTrueToVisibilityConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture) =>
+        values.All(v => v is bool b && b) ? Visibility.Visible : Visibility.Collapsed;
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
 /// <summary>!bool (para IsEnabled = !IsScanning, etc.).</summary>
 public sealed class InverseBoolConverter : IValueConverter
 {
@@ -93,7 +101,7 @@ public sealed class SeverityBrushConverter : IValueConverter
             FileVerdict.Malicious => "DangerBrush",
             FileVerdict.Suspicious => "WarnBrush",
             FileVerdict.Clean => "OkBrush",
-            ThreatAction.Quarantined or ThreatAction.QuarantinePendingReboot => "OkBrush",
+            ThreatAction.Quarantined or ThreatAction.QuarantinePendingReboot or ThreatAction.ProcessTerminated => "OkBrush",
             ThreatAction.QuarantineFailed => "DangerBrush",
             ThreatAction.Warned => "WarnBrush",
             ScanState.Completed => "OkBrush",
@@ -177,6 +185,7 @@ public static class Format
         Shared.Models.ScanKind.Custom => "Personalizado",
         Shared.Models.ScanKind.Realtime => "Tiempo real",
         Shared.Models.ScanKind.Scheduled => "Programado",
+        Shared.Models.ScanKind.Memory => "Memoria",
         _ => k.ToString()
     };
 
@@ -205,6 +214,7 @@ public static class Format
         ThreatAction.QuarantinePendingReboot => "Cuarentena (al reiniciar)",
         ThreatAction.QuarantineFailed => "No se pudo aislar",
         ThreatAction.Warned => "Aviso",
+        ThreatAction.ProcessTerminated => "Proceso detenido",
         _ => "Ninguna"
     };
 }

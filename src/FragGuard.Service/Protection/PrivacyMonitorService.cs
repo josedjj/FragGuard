@@ -129,8 +129,12 @@ public sealed class PrivacyMonitorService : BackgroundService
     {
         DateTime? start = FromFileTime(k.GetValue("LastUsedTimeStart"));
         DateTime? stop = FromFileTime(k.GetValue("LastUsedTimeStop"));
-        var sig = path is not null && File.Exists(path) ? Authenticode.Verify(path) : SignatureInfo.Unsigned;
-        bool trusted = store || ProcessGuard.IsTrustedImage(path) || sig.IsTrustedPublisher;
+
+        // Programa que ya no existe (p. ej. versiones antiguas de Discord en app-1.0.x): Windows conserva su
+        // registro, a veces sin hora de parada si se cerró mal. No puede estar en uso ni es sospechoso.
+        bool exists = path is null || File.Exists(path);
+        var sig = path is not null && exists ? Authenticode.Verify(path) : SignatureInfo.Unsigned;
+        bool trusted = !exists || store || ProcessGuard.IsTrustedImage(path) || sig.IsTrustedPublisher;
         return new DeviceUsageDto
         {
             Device = device,
@@ -139,8 +143,8 @@ public sealed class PrivacyMonitorService : BackgroundService
             IsStoreApp = store,
             LastStartUtc = start,
             LastStopUtc = stop,
-            InUse = start is not null && (stop is null || stop < start),
-            Publisher = store ? "Microsoft Store" : sig.IsValid ? sig.Publisher : null,
+            InUse = exists && start is not null && (stop is null || stop < start),
+            Publisher = !exists ? "Ya no está instalado" : store ? "Microsoft Store" : sig.IsValid ? sig.Publisher : null,
             IsTrusted = trusted
         };
     }

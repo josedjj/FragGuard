@@ -64,7 +64,8 @@
                     Visibility="{Binding IsScanning, Converter={StaticResource BoolToVis}}">
                 <StackPanel>
                     <DockPanel>
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                    Visibility="{Binding IsMemoryScan, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
                             <Button Style="{StaticResource NeonButton}" Content="Pausar" Command="{Binding PauseCommand}"
                                     Visibility="{Binding IsPaused, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
                             <Button Style="{StaticResource NeonButton}" Content="Reanudar" Command="{Binding ResumeCommand}"

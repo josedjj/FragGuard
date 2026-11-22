@@ -29,7 +29,11 @@ namespace FragGuard.Service.Protection;
 /// </summary>
 public sealed class AccountProtectionService : BackgroundService
 {
-    private const string FileSystemAuditSubcategory = "{0CCE921D-69AE-11D9-BED3-505400B6D0E1}";
+    /// <summary>
+    /// Subcategoría de auditoría "Sistema de archivos" (Object Access → File System).
+    /// Verificado con AuditEnumerateSubCategories + AuditLookupSubCategoryName en Windows 11.
+    /// </summary>
+    private static readonly Guid FileSystemAuditGuid = new("0CCE921D-69AE-11D9-BED3-505054503030");
 
     private readonly SettingsStore _settings;
     private readonly FragGuardPaths _paths;
@@ -89,10 +93,22 @@ public sealed class AccountProtectionService : BackgroundService
             return;
         }
 
-        SaveOriginalAuditSetting();
-        if (!RunAuditpol($"/set /subcategory:{FileSystemAuditSubcategory} /success:enable"))
+        uint? original = NativeMethods.QueryAuditPolicy(FileSystemAuditGuid);
+        if (original is null)
         {
-            LastError = "No se pudo activar la auditoría del sistema de archivos.";
+            LastError = $"No se pudo leer la política de auditoría (error {System.Runtime.InteropServices.Marshal.GetLastWin32Error()}).";
+            _logger.LogWarning("Protección de cuentas no disponible: {Error}", LastError);
+            return;
+        }
+        SaveOriginalAuditSetting(original.Value);
+
+        // Añadimos "éxito" a lo que hubiera (sin quitar "error" si ya estaba activo).
+        uint wanted = (original.Value & NativeMethods.POLICY_AUDIT_EVENT_FAILURE) | NativeMethods.POLICY_AUDIT_EVENT_SUCCESS;
+        int err = NativeMethods.SetAuditPolicy(FileSystemAuditGuid, wanted);
+        if (err != 0)
+        {
+            LastError = $"No se pudo activar la auditoría del sistema de archivos (error {err}).";
+            _logger.LogWarning("Protección de cuentas no disponible: {Error}", LastError);
             return;
         }
 
@@ -279,49 +295,30 @@ public sealed class AccountProtectionService : BackgroundService
         return sig.IsValid && sig.Publisher is not null && sig.Publisher.StartsWith(publisherStartsWith, StringComparison.OrdinalIgnoreCase);
     }
 
-    // ---------------- auditpol ----------------
+    // ---------------- Política de auditoría original ----------------
 
     private string OriginalSettingPath => Path.Combine(_paths.DataRoot, "audit-filesystem-original.txt");
 
-    private void SaveOriginalAuditSetting()
+    /// <summary>Guarda el valor ORIGINAL (numérico, sin depender del idioma) para restaurarlo al desactivar.</summary>
+    private void SaveOriginalAuditSetting(uint original)
     {
         if (File.Exists(OriginalSettingPath))
-            return; // ya guardado en una activación anterior
-        string? output = RunAuditpolOutput($"/get /subcategory:{FileSystemAuditSubcategory} /r");
-        // CSV: Machine Name,Policy Target,Subcategory,Subcategory GUID,Inclusion Setting,Exclusion Setting
-        string? line = output?.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.Contains(FileSystemAuditSubcategory, StringComparison.OrdinalIgnoreCase));
-        string setting = line?.Split(',').ElementAtOrDefault(4)?.Trim() ?? "";
-        File.WriteAllText(OriginalSettingPath, setting);
+            return; // ya guardado en una activación anterior: ese es el original de verdad
+        File.WriteAllText(OriginalSettingPath, original.ToString());
     }
 
     private void RestoreOriginalAuditSetting()
     {
         if (!File.Exists(OriginalSettingPath))
             return;
-        string original = File.ReadAllText(OriginalSettingPath);
-        // El texto depende del idioma; si la auditoría de éxitos NO estaba activa (o no se sabe), la desactivamos.
-        bool successWasOn = new[] { "Success", "Acierto", "Correcto", "xito" }.Any(w => original.Contains(w, StringComparison.OrdinalIgnoreCase));
-        if (!successWasOn)
-            RunAuditpol($"/set /subcategory:{FileSystemAuditSubcategory} /success:disable");
+        if (uint.TryParse(File.ReadAllText(OriginalSettingPath).Trim(), out uint original))
+        {
+            // 0 = "sin configurar": se restaura como "sin auditoría".
+            uint value = original == 0 ? NativeMethods.POLICY_AUDIT_EVENT_NONE : original;
+            int err = NativeMethods.SetAuditPolicy(FileSystemAuditGuid, value);
+            if (err != 0)
+                _logger.LogWarning("No se pudo restaurar la auditoría original (error {Error})", err);
+        }
         File.Delete(OriginalSettingPath);
-    }
-
-    private static bool RunAuditpol(string args) => RunAuditpolOutput(args) is not null;
-
-    private static string? RunAuditpolOutput(string args)
-    {
-        try
-        {
-            using var p = Process.Start(new ProcessStartInfo("auditpol.exe", args)
-            { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true });
-            if (p is null) return null;
-            string output = p.StandardOutput.ReadToEnd();
-            p.WaitForExit(10000);
-            return p.ExitCode == 0 ? output : null;
-        }
-        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
-        {
-            return null;
-        }
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using FragGuard.Shared.Ipc;
 using FragGuard.Shared.Models;
 using FragGuard.UI.Infrastructure;
 using FragGuard.UI.Views;
@@ -41,6 +42,29 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>Lo rellena la vista desde el PasswordBox (PasswordBox.Password no admite binding por seguridad).</summary>
     public string VirusTotalKeyInput { get; set; } = "";
 
+    // abuse.ch (MalwareBazaar + URLhaus)
+    [ObservableProperty] private bool _abuseChEnabled;
+    [ObservableProperty] private bool _hasAbuseChKey;
+    /// <summary>Lo rellena la vista desde su PasswordBox.</summary>
+    public string AbuseChKeyInput { get; set; } = "";
+
+    // Detección adicional y actualizaciones
+    [ObservableProperty] private bool _detectPup;
+    [ObservableProperty] private bool _autoUpdateRules;
+    [ObservableProperty] private string? _rulesUpdateMessage;
+
+    // Protección en ejecución
+    [ObservableProperty] private bool _processMonitorEnabled;
+    [ObservableProperty] private bool _ransomwareShieldEnabled;
+    [ObservableProperty] private bool _accountProtectionEnabled;
+    [ObservableProperty] private bool _privacyMonitorEnabled;
+    [ObservableProperty] private bool _persistenceMonitorEnabled;
+    [ObservableProperty] private bool _removableDrivesEnabled;
+
+    // Red
+    [ObservableProperty] private bool _dnsProtected;
+    [ObservableProperty] private string _dnsStatus = "";
+
     // Modo juego
     [ObservableProperty] private bool _gameModeAuto;
     [ObservableProperty] private bool _gameModeOnFullscreen;
@@ -65,6 +89,29 @@ public sealed partial class SettingsViewModel : PageViewModel
         if (!Client.IsConnected)
             return;
         await RunAsync(async () => Load(await Client.GetSettingsAsync()), showErrors: false);
+        await RunAsync(async () =>
+        {
+            var dns = await Client.GetDnsProtectionAsync();
+            DnsProtected = dns.Success;
+            DnsStatus = dns.Message ?? "";
+        }, showErrors: false);
+    }
+
+    [RelayCommand]
+    private async Task ToggleDnsAsync()
+    {
+        bool enable = !DnsProtected;
+        if (enable && !NeonDialog.Confirm("Activar DNS protegido",
+                "Tus adaptadores de red usarán Quad9 (9.9.9.9), un DNS sin ánimo de lucro que bloquea dominios de malware y phishing.\n\n" +
+                "Tu configuración actual se guarda y se restaura al desactivarlo. Si usas una VPN o una red de empresa, puede que no quieras activarlo.",
+                "Activar", "Cancelar", DialogKind.Info))
+            return;
+        OperationResult? result = null;
+        if (await RunAsync(async () => result = await Client.SetDnsProtectionAsync(enable)))
+        {
+            ShowSaveMessage(result?.Message ?? "Hecho.", ok: true);
+            await RefreshAsync();
+        }
     }
 
     private void Load(FragGuardSettings s)
@@ -78,6 +125,16 @@ public sealed partial class SettingsViewModel : PageViewModel
         Replace(Exclusions, s.Exclusions);
         VirusTotalEnabled = s.VirusTotalEnabled;
         HasVirusTotalKey = s.HasVirusTotalKey;
+        AbuseChEnabled = s.AbuseChEnabled;
+        HasAbuseChKey = s.HasAbuseChKey;
+        DetectPup = s.DetectPup;
+        AutoUpdateRules = s.AutoUpdateRules;
+        ProcessMonitorEnabled = s.ProcessMonitorEnabled;
+        RansomwareShieldEnabled = s.RansomwareShieldEnabled;
+        AccountProtectionEnabled = s.AccountProtectionEnabled;
+        PrivacyMonitorEnabled = s.PrivacyMonitorEnabled;
+        PersistenceMonitorEnabled = s.PersistenceMonitorEnabled;
+        RemovableDrivesEnabled = s.RemovableDrivesEnabled;
         GameModeAuto = s.GameModeAuto;
         GameModeOnFullscreen = s.GameModeOnFullscreen;
         GameProcesses = string.Join(Environment.NewLine, s.GameProcesses);
@@ -141,6 +198,9 @@ public sealed partial class SettingsViewModel : PageViewModel
         if (!RealtimeEnabled && !NeonDialog.Confirm("Desactivar protección en tiempo real",
                 "Los archivos nuevos que descargues no se analizarán. ¿Seguro?", "Desactivar", "Cancelar", DialogKind.Danger))
             return;
+        if (_loaded.RansomwareShieldEnabled && !RansomwareShieldEnabled && !NeonDialog.Confirm("Desactivar el escudo anti-ransomware",
+                "Si un ransomware empieza a cifrar tus archivos, FragGuard no lo detendrá. ¿Seguro?", "Desactivar", "Cancelar", DialogKind.Danger))
+            return;
 
         // Partimos de lo cargado para conservar los campos que esta pantalla no edita (p. ej. procesos auxiliares).
         var s = _loaded;
@@ -151,6 +211,15 @@ public sealed partial class SettingsViewModel : PageViewModel
         s.MaxFileSizeMb = maxMb;
         s.Exclusions = Exclusions.ToList();
         s.VirusTotalEnabled = VirusTotalEnabled;
+        s.AbuseChEnabled = AbuseChEnabled;
+        s.DetectPup = DetectPup;
+        s.AutoUpdateRules = AutoUpdateRules;
+        s.ProcessMonitorEnabled = ProcessMonitorEnabled;
+        s.RansomwareShieldEnabled = RansomwareShieldEnabled;
+        s.AccountProtectionEnabled = AccountProtectionEnabled;
+        s.PrivacyMonitorEnabled = PrivacyMonitorEnabled;
+        s.PersistenceMonitorEnabled = PersistenceMonitorEnabled;
+        s.RemovableDrivesEnabled = RemovableDrivesEnabled;
         s.GameModeAuto = GameModeAuto;
         s.GameModeOnFullscreen = GameModeOnFullscreen;
         s.GameProcesses = SplitList(GameProcesses);
@@ -191,6 +260,43 @@ public sealed partial class SettingsViewModel : PageViewModel
             HasVirusTotalKey = false;
             ShowSaveMessage("Clave de VirusTotal eliminada.", ok: true);
         }
+    }
+
+    [RelayCommand]
+    private async Task SaveAbuseChKeyAsync()
+    {
+        string key = AbuseChKeyInput.Trim();
+        if (key.Length < 20)
+        {
+            ShowSaveMessage("La Auth-Key de abuse.ch parece incompleta.", ok: false);
+            return;
+        }
+        if (await RunAsync(() => Client.SetAbuseChKeyAsync(key)))
+        {
+            HasAbuseChKey = true;
+            ShowSaveMessage("Auth-Key de abuse.ch guardada (cifrada en el equipo).", ok: true);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ClearAbuseChKeyAsync()
+    {
+        if (await RunAsync(() => Client.SetAbuseChKeyAsync(null)))
+        {
+            HasAbuseChKey = false;
+            ShowSaveMessage("Auth-Key de abuse.ch eliminada.", ok: true);
+        }
+    }
+
+    [RelayCommand]
+    private async Task CheckRuleUpdatesAsync()
+    {
+        RulesUpdateMessage = "Comprobando…";
+        string? message = null;
+        if (await RunAsync(async () => message = await Client.CheckRuleUpdatesAsync()))
+            RulesUpdateMessage = message;
+        else
+            RulesUpdateMessage = null;
     }
 
     [RelayCommand]

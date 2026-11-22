@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "FragGuard Anti-Phishing",
+  "short_name": "FragGuard",
+  "version": "0.1.0",
+  "description": "Bloquea webs de estafas gamer: Discord Nitro falso, phishing de Steam y \"free skins\". Sin leer tu navegación.",
+  "icons": { "128": "icons/icon128.png", "48": "icons/icon48.png", "16": "icons/icon16.png" },
+  "action": { "default_popup": "popup.html", "default_title": "FragGuard Anti-Phishing" },
+  "permissions": ["declarativeNetRequest"],
+  "declarative_net_request": {
+    "rule_resources": [
+      { "id": "gamer_scams", "enabled": true, "path": "rules/gamer_scams.json" }
+    ]
+  }
+}

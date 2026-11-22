@@ -84,6 +84,9 @@ public partial class App : Application
         _client.ThreatDetected += _tray.NotifyThreat;
         _client.CheatWarning += _tray.NotifyCheat;
         _client.ScanCompleted += _tray.NotifyScanCompleted;
+        _vm.ServiceDown += () => _tray.Show("Protección desactivada",
+            "El servicio de FragGuard no responde. Si no lo has detenido tú, reinicia el equipo o reinstala FragGuard.",
+            H.NotifyIcon.Core.NotificationIcon.Error);
 
         _client.Start();
         _fullscreen.Start();

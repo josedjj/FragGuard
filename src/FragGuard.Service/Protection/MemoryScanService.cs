@@ -18,7 +18,7 @@ namespace FragGuard.Service.Protection;
 ///  - NO se permite durante el modo juego.
 ///  - Se excluyen los juegos detectados, los lanzadores y los procesos de anti-cheat (Vanguard, EAC, BattlEye...).
 ///  - Se excluyen los procesos de Windows (C:\Windows) y los procesos protegidos (no se pueden abrir).
-/// Solo lee memoria: no inyecta, no escribe y no suspende nada.
+/// Solo lee memoria: no inyecta, no escribe, no suspende y NO detiene nada (solo avisa: ver RunAsync).
 /// </summary>
 public sealed class MemoryScanService
 {
@@ -114,11 +114,12 @@ public sealed class MemoryScanService
                     continue;
 
                 summary.ThreatsFound++;
-                // Un programa de confianza (p. ej. un editor de código con reglas YARA abiertas, o un navegador)
-                // puede contener esas cadenas en memoria sin ser malware: solo se avisa, nunca se cierra.
+                // En memoria, CUALQUIER programa que muestre texto de malware coincide (un editor con reglas YARA
+                // abiertas, un chat, una terminal...). Es una prueba más débil que en un archivo, así que el
+                // escaneo de memoria NUNCA detiene procesos: solo avisa, y el ejecutable se analiza aparte.
                 bool trusted = ProcessGuard.IsTrustedImage(path);
                 bool malicious = !trusted && threats.Any(t => t.Severity >= ThreatSeverity.High && t.Category != "Test");
-                bool killed = malicious && ProcessGuard.TryKill(p.Pid, p.Name, _logger);
+                const bool killed = false;
                 foreach (var t in threats)
                 {
                     t.Description = $"[en memoria de {p.Name}] {t.Description}";

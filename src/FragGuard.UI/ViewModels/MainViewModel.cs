@@ -27,7 +27,13 @@ public sealed partial class MainViewModel : ObservableObject
         History = new HistoryViewModel(client);
         Settings = new SettingsViewModel(client, s => CurrentSettings = s);
         Games = new GamesViewModel(client);
-        _pages = new() { ["Dashboard"] = Dashboard, ["Scan"] = Scan, ["Quarantine"] = Quarantine, ["History"] = History, ["Settings"] = Settings, ["Games"] = Games };
+        Protection = new ProtectionViewModel(client, Navigate);
+        Autoruns = new AutorunsViewModel(client);
+        _pages = new()
+        {
+            ["Dashboard"] = Dashboard, ["Scan"] = Scan, ["Protection"] = Protection, ["Quarantine"] = Quarantine,
+            ["History"] = History, ["Autoruns"] = Autoruns, ["Settings"] = Settings, ["Games"] = Games
+        };
         _currentPage = Dashboard;
 
         // Eventos del servicio (llegan en hilos de fondo → pasamos al hilo de UI)
@@ -48,6 +54,8 @@ public sealed partial class MainViewModel : ObservableObject
     public HistoryViewModel History { get; }
     public SettingsViewModel Settings { get; }
     public GamesViewModel Games { get; }
+    public ProtectionViewModel Protection { get; }
+    public AutorunsViewModel Autoruns { get; }
 
     public bool IsElevated => Elevation.IsElevated;
 
@@ -75,15 +83,28 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     /// <summary>Refresco periódico (solo mientras la ventana está visible): estado del panel / progreso.</summary>
-    public Task PollAsync() => CurrentPage is DashboardViewModel or ScanViewModel ? CurrentPage.RefreshAsync() : Task.CompletedTask;
+    public Task PollAsync() => CurrentPage is DashboardViewModel or ScanViewModel or ProtectionViewModel ? CurrentPage.RefreshAsync() : Task.CompletedTask;
+
+    /// <summary>Se dispara si el servicio lleva más de 15 s sin responder (protección caída).</summary>
+    public event Action? ServiceDown;
+
+    private CancellationTokenSource? _downWatch;
 
     private async Task OnConnectionChangedAsync(bool connected)
     {
         IsConnected = connected;
+        _downWatch?.Cancel();
         if (!connected)
         {
             Dashboard.ApplyDisconnected();
             GameModeActive = false;
+            // Vigilante: si en 15 s no vuelve, avisamos (un malware podría haber detenido el servicio).
+            var cts = _downWatch = new CancellationTokenSource();
+            _ = Task.Delay(TimeSpan.FromSeconds(15), cts.Token).ContinueWith(t =>
+            {
+                if (!t.IsCanceled && !_client.IsConnected)
+                    ServiceDown?.Invoke();
+            }, TaskScheduler.Default);
             return;
         }
 

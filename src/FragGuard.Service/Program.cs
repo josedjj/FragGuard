@@ -62,6 +62,7 @@ try
     builder.Services.AddSingleton<FragGuard.Service.Protection.AutorunManager>();
     builder.Services.AddSingleton<FragGuard.Service.Protection.MemoryScanService>();
     builder.Services.AddSingleton<FragGuard.Service.Protection.ProtectionStatusProvider>();
+    builder.Services.AddSingleton<FragGuard.Service.Protection.DnsProtection>();
     builder.Services.AddSingleton(sp =>
     {
         var dispatcher = ActivatorUtilities.CreateInstance<RequestDispatcher>(sp);
