@@ -12,13 +12,19 @@
     <ServerGarbageCollection>false</ServerGarbageCollection>
     <!-- Sin GC concurrente: evita el hilo de GC en segundo plano y su memoria extra. -->
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
-    <!-- Prioriza memoria compacta sobre velocidad de asignación (0-9). -->
-    <GCConserveMemory>5</GCConserveMemory>
+    <!-- Sin instrumentación PGO dinámica: el servicio pasa casi todo el tiempo en reposo y no compensa su memoria. -->
+    <TieredPGO>false</TieredPGO>
     <!-- Sin datos de cultura ICU: menos memoria y arranque más rápido (los textos son fijos en español). -->
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- Solo se copian los recursos satélite en español (menos archivos en la instalación). -->
     <SatelliteResourceLanguages>es</SatelliteResourceLanguages>
   </PropertyGroup>
+
+  <!-- Prioriza memoria compacta sobre velocidad de asignación (0-9). No existe como propiedad de MSBuild
+       (<GCConserveMemory> se ignoraba sin avisar): hay que pasarlo así para que llegue al runtimeconfig.json. -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />

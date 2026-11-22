@@ -281,7 +281,14 @@ Las pruebas destructivas (señuelos de ransomware, reglas que detienen al proces
 
 ## 12. Consumo medido (equipo de desarrollo)
 
-Con todos los módulos de protección activos, el servicio instalado midió **~43,5 MB y ~0,8 % de CPU** poco después de arrancar (la medición en reposo del MVP, abajo, era sin esos módulos).
+Con todos los módulos de protección activos (servicio instalado, 6 minutos desde el arranque, muestras cada 5 s):
+
+| Situación | RAM privada |
+|---|---|
+| Pico del arranque | **48,7 MB** |
+| Reposo (desde los 2 min) | mín 37 · media ~42-43 · máx 47,7 MB |
+
+El monitor de recursos recorta la memoria (GC compactando + working set) cuando la RAM privada supera 40 MB y ha crecido desde el último recorte: cada 30 s como mucho durante los 5 primeros minutos y cada 2 min después. `System.GC.ConserveMemory=5` y `TieredPGO=false` van en el `runtimeconfig.json`. La tabla de abajo es la medición del MVP, sin los módulos de protección.
 
 | Proceso / situación | RAM privada | Working set | CPU |
 |---|---|---|---|
