@@ -38,6 +38,34 @@ if (Environment.UserInteractive)
     logConfig.WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Information);
 Log.Logger = logConfig.CreateLogger();
 
+// ---------- Modo desinstalación ----------
+// "FragGuard.Service.exe --uninstall-cleanup" (como administrador y con el servicio ya detenido) deshace los
+// cambios que FragGuard hace en el sistema: señuelos anti-ransomware, auditoría de cuentas y DNS protegido.
+// Lo llaman el desinstalador y scripts\uninstall.ps1. Los autoruns desactivados por el usuario NO se tocan.
+if (args.Contains("--uninstall-cleanup", StringComparer.OrdinalIgnoreCase))
+{
+    using var loggerFactory = LoggerFactory.Create(b => b.AddSerilog(dispose: false));
+    var log = loggerFactory.CreateLogger("Uninstall");
+    int failures = 0;
+    void Step(string name, Action action)
+    {
+        try { action(); }
+        catch (Exception ex) { failures++; log.LogError(ex, "Limpieza: fallo en {Step}", name); }
+    }
+
+    Log.Information("Limpieza de desinstalación de {Product} {Version}", AppInfo.ProductName, AppInfo.Version);
+    Step("señuelos", () => log.LogInformation("Señuelos eliminados: {Count}", FragGuard.Service.Protection.RansomwareShield.RemoveCanaries(log)));
+    Step("auditoría", () => FragGuard.Service.Protection.AccountProtectionService.CleanupForUninstall(paths, log));
+    Step("DNS", () =>
+    {
+        var dns = new FragGuard.Service.Protection.DnsProtection(paths, loggerFactory.CreateLogger<FragGuard.Service.Protection.DnsProtection>());
+        if (File.Exists(Path.Combine(paths.DataRoot, "dns-backup.json")))
+            log.LogInformation("DNS: {Result}", dns.Disable().Message);
+    });
+    await Log.CloseAndFlushAsync();
+    return failures == 0 ? 0 : 2;
+}
+
 try
 {
     Log.Information("Iniciando {Product} {Version} (PID {Pid}, datos en {DataRoot})",

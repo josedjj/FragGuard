@@ -124,11 +124,27 @@ public sealed class AccountProtectionService : BackgroundService
         _watcher?.Dispose();
         _watcher = null;
         foreach (var (path, _, isDir) in _targets)
-            SetAuditRule(path, isDir, add: false);
+            SetAuditRule(path, isDir, add: false, _logger);
         _targets.Clear();
-        RestoreOriginalAuditSetting();
+        RestoreOriginalAuditSetting(_paths, _logger);
         IsActive = false;
         _logger.LogInformation("Protección de cuentas desactivada y auditoría restaurada");
+    }
+
+    /// <summary>
+    /// Desinstalación (con el servicio ya detenido): quita las reglas de auditoría de Discord/Steam y devuelve la
+    /// política de auditoría del sistema de archivos a como estaba antes de FragGuard.
+    /// </summary>
+    public static void CleanupForUninstall(FragGuardPaths paths, ILogger logger)
+    {
+        if (!NativeMethods.EnablePrivilege("SeSecurityPrivilege"))
+        {
+            logger.LogWarning("Sin privilegio de auditoría: no se pueden quitar las reglas de auditoría");
+            return;
+        }
+        int removed = DiscoverTargets().Count(t => SetAuditRule(t.Path, t.IsDirectory, add: false, logger));
+        RestoreOriginalAuditSetting(paths, logger);
+        logger.LogInformation("Protección de cuentas: {Count} reglas de auditoría quitadas y política restaurada", removed);
     }
 
     private void RefreshTargets()
@@ -137,7 +153,7 @@ public sealed class AccountProtectionService : BackgroundService
         {
             if (_targets.Any(t => t.Path.Equals(path, StringComparison.OrdinalIgnoreCase)))
                 continue;
-            if (SetAuditRule(path, isDir, add: true))
+            if (SetAuditRule(path, isDir, add: true, _logger))
                 _targets.Add((path, label, isDir));
         }
     }
@@ -166,7 +182,7 @@ public sealed class AccountProtectionService : BackgroundService
     }
 
     /// <summary>Añade o quita una regla SACL "Todos: leer datos (éxito)" en el archivo/carpeta.</summary>
-    private bool SetAuditRule(string path, bool isDirectory, bool add)
+    private static bool SetAuditRule(string path, bool isDirectory, bool add, ILogger logger)
     {
         try
         {
@@ -193,7 +209,7 @@ public sealed class AccountProtectionService : BackgroundService
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or PrivilegeNotHeldException or InvalidOperationException)
         {
-            _logger.LogDebug("No se pudo {Action} la auditoría en {Path}: {Error}", add ? "poner" : "quitar", path, ex.Message);
+            logger.LogDebug("No se pudo {Action} la auditoría en {Path}: {Error}", add ? "poner" : "quitar", path, ex.Message);
             return false;
         }
     }
@@ -297,28 +313,33 @@ public sealed class AccountProtectionService : BackgroundService
 
     // ---------------- Política de auditoría original ----------------
 
-    private string OriginalSettingPath => Path.Combine(_paths.DataRoot, "audit-filesystem-original.txt");
+    private static string OriginalSettingPath(FragGuardPaths paths) => Path.Combine(paths.DataRoot, "audit-filesystem-original.txt");
 
     /// <summary>Guarda el valor ORIGINAL (numérico, sin depender del idioma) para restaurarlo al desactivar.</summary>
     private void SaveOriginalAuditSetting(uint original)
     {
-        if (File.Exists(OriginalSettingPath))
+        string file = OriginalSettingPath(_paths);
+        if (File.Exists(file))
             return; // ya guardado en una activación anterior: ese es el original de verdad
-        File.WriteAllText(OriginalSettingPath, original.ToString());
+        File.WriteAllText(file, original.ToString());
     }
 
-    private void RestoreOriginalAuditSetting()
+    private static void RestoreOriginalAuditSetting(FragGuardPaths paths, ILogger logger)
     {
-        if (!File.Exists(OriginalSettingPath))
+        string file = OriginalSettingPath(paths);
+        if (!File.Exists(file))
             return;
-        if (uint.TryParse(File.ReadAllText(OriginalSettingPath).Trim(), out uint original))
+        if (uint.TryParse(File.ReadAllText(file).Trim(), out uint original))
         {
             // 0 = "sin configurar": se restaura como "sin auditoría".
             uint value = original == 0 ? NativeMethods.POLICY_AUDIT_EVENT_NONE : original;
             int err = NativeMethods.SetAuditPolicy(FileSystemAuditGuid, value);
             if (err != 0)
-                _logger.LogWarning("No se pudo restaurar la auditoría original (error {Error})", err);
+            {
+                logger.LogWarning("No se pudo restaurar la auditoría original (error {Error})", err);
+                return; // se conserva el archivo para reintentarlo
+            }
         }
-        File.Delete(OriginalSettingPath);
+        File.Delete(file);
     }
 }

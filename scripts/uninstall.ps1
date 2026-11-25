@@ -32,6 +32,17 @@ if ($service) {
         Stop-Service -Name $ServiceName -Force
         (Get-Service $ServiceName).WaitForStatus('Stopped', [TimeSpan]::FromSeconds(30))
     }
+    $proc = Get-Process FragGuard.Service -ErrorAction SilentlyContinue
+    if ($proc -and -not $proc.WaitForExit(15000)) { $proc | Stop-Process -Force }
+
+    # Deshace los cambios en el sistema: señuelos anti-ransomware, auditoría de cuentas y DNS protegido.
+    $serviceExe = Join-Path $InstallRoot 'Service\FragGuard.Service.exe'
+    if (Test-Path $serviceExe) {
+        Write-Host '==> Deshaciendo los cambios en el sistema (señuelos, auditoría, DNS)...' -ForegroundColor Cyan
+        & $serviceExe --uninstall-cleanup
+        if ($LASTEXITCODE -ne 0) { Write-Host "AVISO: la limpieza terminó con código $LASTEXITCODE (revisa el log del servicio)." -ForegroundColor Yellow }
+    }
+
     Write-Host '==> Eliminando el servicio...' -ForegroundColor Cyan
     sc.exe delete $ServiceName | Out-Null
 } else {

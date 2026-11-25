@@ -128,6 +128,21 @@ Get-Content "$env:ProgramData\FragGuard\logs\service-*.log" -Tail 20
 
 Para desinstalar: `.\scripts\uninstall.ps1`. Añade `-PurgeData` para borrar también el historial y la cuarentena.
 
+### Instalador para usuarios (`FragGuard-Setup-<versión>.exe`)
+
+```powershell
+winget install JRSoftware.InnoSetup      # una sola vez
+.\scripts\build-installer.ps1            # → artifacts\installer\FragGuard-Setup-0.1.0.exe (+ .sha256)
+```
+
+- Servicio e interfaz **autocontenidos** (llevan .NET dentro: ~74 MB). El usuario no instala nada más.
+- Instala siempre en `Program Files\FragGuard` (el servicio es SYSTEM: sus binarios solo deben poder cambiarlos los administradores).
+- Al **actualizar**, cierra la interfaz, detiene el servicio y espera a que su proceso salga antes de copiar.
+- Al **desinstalar** ejecuta `FragGuard.Service.exe --uninstall-cleanup`: borra los señuelos anti-ransomware, quita las reglas de auditoría de Discord/Steam y restaura la política de auditoría y el DNS originales. Después pregunta si borrar también historial, ajustes y cuarentena (por defecto, **no**).
+- Instalación desatendida: `FragGuard-Setup-0.1.0.exe /VERYSILENT /SUPPRESSMSGBOXES` (los datos se conservan al desinstalar en silencio).
+
+**Publicar una versión:** sube la versión en `Directory.Build.props`, haz commit y `git tag v0.1.0 && git push origin v0.1.0`. GitHub Actions (`release.yml`) pasa los tests, genera el instalador y crea un **borrador** de Release; revísalo y pulsa *Publish release*. Hasta tener firma de código de confianza, el instalador sale **sin firmar** y SmartScreen avisará.
+
 ### Firma de código (Authenticode)
 
 `install.ps1` firma automáticamente **solo los binarios propios** (`FragGuard*.exe` / `FragGuard*.dll`) si encuentra un certificado. Sin certificado, instala sin firmar y muestra un aviso.

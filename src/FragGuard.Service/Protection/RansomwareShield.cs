@@ -91,21 +91,49 @@ public sealed class RansomwareShield : BackgroundService
     private void Arm()
     {
         int canaries = 0;
-        foreach (var profile in ScanTargets.GetUserProfiles())
+        foreach (string dir in CanaryFolders())
         {
-            // Rutas REALES (OneDrive puede redirigir Documentos y Escritorio).
-            foreach (var (value, sub) in new[] { ("Personal", "Documents"), ("My Pictures", "Pictures"), ("Desktop", "Desktop") })
-            {
-                string dir = ScanTargets.GetShellFolder(profile, value, sub);
-                if (!Directory.Exists(dir))
-                    continue;
-                canaries += EnsureCanaries(dir);
-                Watch(dir);
-            }
+            canaries += EnsureCanaries(dir);
+            Watch(dir);
         }
         CanaryCount = canaries;
         IsArmed = true;
         _logger.LogInformation("Escudo anti-ransomware activo: {Count} señuelos, {Folders} carpetas vigiladas", canaries, _watchers.Count);
+    }
+
+    /// <summary>Carpetas donde se colocan los señuelos (rutas reales: OneDrive puede redirigir Documentos y Escritorio).</summary>
+    private static IEnumerable<string> CanaryFolders()
+    {
+        foreach (var profile in ScanTargets.GetUserProfiles())
+            foreach (var (value, sub) in new[] { ("Personal", "Documents"), ("My Pictures", "Pictures"), ("Desktop", "Desktop") })
+            {
+                string dir = ScanTargets.GetShellFolder(profile, value, sub);
+                if (Directory.Exists(dir))
+                    yield return dir;
+            }
+    }
+
+    /// <summary>Desinstalación: borra los señuelos de todos los usuarios. Devuelve cuántos se eliminaron.</summary>
+    public static int RemoveCanaries(ILogger logger)
+    {
+        int removed = 0;
+        foreach (string dir in CanaryFolders())
+            foreach (string name in CanaryNames)
+            {
+                string path = Path.Combine(dir, name);
+                try
+                {
+                    if (!File.Exists(path)) continue;
+                    File.SetAttributes(path, FileAttributes.Normal);
+                    File.Delete(path);
+                    removed++;
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    logger.LogWarning("No se pudo borrar el señuelo {Path}: {Error}", path, ex.Message);
+                }
+            }
+        return removed;
     }
 
     private void Disarm()

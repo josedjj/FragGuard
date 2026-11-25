@@ -1,0 +1,62 @@
+# Al subir una etiqueta de versión (p. ej. "git tag v0.1.0 && git push origin v0.1.0") compila, prueba,
+# genera el instalador y crea un BORRADOR de Release con el instalador y su SHA-256.
+# El borrador no es visible hasta que alguien lo revisa y pulsa "Publish release" en GitHub.
+#
+# Cuando haya firma de código (SignPath), el paso de firma irá entre "Generar instalador" y "Crear borrador".
+name: release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Comprobar que la etiqueta coincide con la versión del proyecto
+        shell: pwsh
+        run: |
+          $v = ([xml](Get-Content Directory.Build.props -Raw)).Project.PropertyGroup.Version | Select-Object -First 1
+          if ("v$v" -ne $env:GITHUB_REF_NAME) { throw "La etiqueta $env:GITHUB_REF_NAME no coincide con la versión $v de Directory.Build.props" }
+
+      - name: Tests
+        run: dotnet test FragGuard.sln -c Release
+
+      - name: Instalar Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+
+      - name: Generar instalador
+        shell: pwsh
+        run: ./scripts/build-installer.ps1 -NoSign
+
+      - name: Crear borrador de Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $notes = @"
+          ## FragGuard $env:GITHUB_REF_NAME
+
+          Descarga **FragGuard-Setup-*.exe** y ejecútalo. No necesitas instalar .NET.
+
+          Comprueba la descarga: el SHA-256 está en el archivo ``.sha256`` adjunto
+          (``Get-FileHash .\FragGuard-Setup-*.exe``).
+
+          > ⚠️ Este instalador todavía **no está firmado** con un certificado de confianza: Windows SmartScreen
+          > mostrará un aviso. Descárgalo solo desde esta página.
+          "@
+          gh release create $env:GITHUB_REF_NAME artifacts/installer/* --draft --title "FragGuard $env:GITHUB_REF_NAME" --notes $notes
