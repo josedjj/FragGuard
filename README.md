@@ -79,11 +79,16 @@ FragGuard **no instala drivers**, **no usa hooks de kernel** y **no inyecta nada
 
 ## Descargas
 
-> 🚧 **Próximamente.** La primera versión pública se publicará en la sección
-> [**Releases**](../../releases) en cuanto el instalador esté **firmado digitalmente**.
-> Descarga FragGuard **solo desde esa página**: cualquier otra copia podría estar manipulada.
+**[⬇️ Descargar FragGuard 0.1.0](https://github.com/josedjj/FragGuard/releases/latest)**: descarga `FragGuard-Setup-0.1.0.exe` y ejecútalo. No necesitas instalar nada más.
 
-Mientras tanto, puedes **compilarlo e instalarlo tú mismo** desde el código (necesitas el SDK de .NET 8 y PowerShell como administrador):
+> ⚠️ **Versión preliminar sin firma de confianza.** Mientras llega el certificado de firma de código, Windows SmartScreen
+> mostrará *"Windows protegió tu PC"*: pulsa **Más información → Ejecutar de todas formas**.
+> Descarga FragGuard **solo desde la página de [Releases](../../releases)** y comprueba el SHA-256 (archivo `.sha256` adjunto):
+> cualquier otra copia podría estar manipulada.
+
+Para desinstalarlo: **Configuración → Aplicaciones → Aplicaciones instaladas → FragGuard**. Deja el sistema como estaba (quita sus archivos trampa, reglas de auditoría y, si lo activaste, el DNS protegido).
+
+También puedes **compilarlo e instalarlo tú mismo** desde el código (necesitas el SDK de .NET 8 y PowerShell como administrador):
 
 ```powershell
 git clone https://github.com/josedjj/FragGuard.git
