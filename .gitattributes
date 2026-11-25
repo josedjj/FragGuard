@@ -8,3 +8,6 @@
 # Binarios
 *.ico binary
 *.png binary
+
+# Canal de reglas firmado: los bytes deben quedar EXACTAMENTE como se firmaron (sin conversión de fin de línea).
+rules-channel/** -text

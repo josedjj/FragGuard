@@ -32,7 +32,7 @@ public sealed class RulesChannel
     /// <summary>Clave pública del canal (SubjectPublicKeyInfo, base64). La privada la guarda el autor fuera del repositorio.</summary>
     public const string EmbeddedPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpf/YOZLl7Y5k3h3KY3xUTxqZbtBSzISVxdi2OUzckKDJpsI61rkdIUR38hxAxNc+YkUAvxG/QzN/hJOwuAkN1A==";
 
-    public const string DefaultBaseUrl = "https://raw.githubusercontent.com/josedjj/FragGuard-Releases/main/rules-channel/";
+    public const string DefaultBaseUrl = "https://raw.githubusercontent.com/josedjj/FragGuard/main/rules-channel/";
 
     private const int MaxManifestBytes = 64 * 1024;
     private const int MaxRuleFileBytes = 2 * 1024 * 1024;

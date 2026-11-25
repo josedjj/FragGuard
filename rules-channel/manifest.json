@@ -1,0 +1,30 @@
+{
+  "version": 202611251858,
+  "createdUtc": "2026-11-25T18:58:15.6443542Z",
+  "files": [
+    {
+      "name": "00_test_eicar.yar",
+      "sha256": "F5C350725E8445B186261E2690247FF331EF4CEB6447A51E381CA4582E97C7ED"
+    },
+    {
+      "name": "10_infostealers_discord.yar",
+      "sha256": "895D071182D7B8C15F3B4DC15B1A851AA21258896B4A96B599B049E9CEC38ECE"
+    },
+    {
+      "name": "11_infostealers_steam.yar",
+      "sha256": "07AB61F2E8C1AE30DC46581DC2AFDF0622D9D4C6E7CF4D4574E6A98649DB8E1B"
+    },
+    {
+      "name": "12_infostealers_browsers.yar",
+      "sha256": "03122FAD7F9A1D1C199260081327E580D398820EB8DEFE2740D8F1C754D61A6C"
+    },
+    {
+      "name": "20_fake_cheats_droppers.yar",
+      "sha256": "332F7D5BD268774EDC51AC88AF849A2FB1440FF1AB8128B5813349785A98E6E9"
+    },
+    {
+      "name": "30_pup_miners.yar",
+      "sha256": "07874A8495993FAC8C881A6BE0522AF35CE699CE66263AE6BBF440E96A7ACBD8"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+# Compila y prueba FragGuard en cada push y pull request, y guarda los binarios publicados como artefacto.
+# Es también la base para firmar con SignPath: firman lo que sale de aquí, compilado desde el código público.
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restaurar
+        run: dotnet restore FragGuard.sln
+
+      - name: Compilar
+        run: dotnet build FragGuard.sln -c Release --no-restore
+
+      - name: Tests
+        run: dotnet test FragGuard.sln -c Release --no-build --logger "trx;LogFileName=tests.trx"
+
+      - name: Publicar servicio e interfaz
+        shell: pwsh
+        run: |
+          dotnet publish src/FragGuard.Service/FragGuard.Service.csproj -c Release -r win-x64 --self-contained false -o out/Service
+          dotnet publish src/FragGuard.UI/FragGuard.UI.csproj -c Release -r win-x64 --self-contained false -o out/UI
+          Copy-Item THIRD_PARTY_NOTICES.md, LICENSE out/
+
+      - name: Guardar binarios (sin firmar)
+        uses: actions/upload-artifact@v4
+        with:
+          name: FragGuard-win-x64-unsigned
+          path: out/
+          if-no-files-found: error
+
+      - name: Guardar resultados de los tests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/TestResults/*.trx'
